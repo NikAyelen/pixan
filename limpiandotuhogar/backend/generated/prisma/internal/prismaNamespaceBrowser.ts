@@ -51,7 +51,9 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-
+  estrellas: 'estrellas',
+  galaxias: 'galaxias',
+  hoyo_negro: 'hoyo_negro'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -68,4 +70,92 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const EstrellasScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  phone_number: 'phone_number',
+  email: 'email',
+  password: 'password',
+  rol: 'rol',
+  horario: 'horario'
+} as const
+
+export type EstrellasScalarFieldEnum = (typeof EstrellasScalarFieldEnum)[keyof typeof EstrellasScalarFieldEnum]
+
+
+export const GalaxiasScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  habitaciones: 'habitaciones',
+  banos: 'banos',
+  medios_banos: 'medios_banos',
+  pisos: 'pisos'
+} as const
+
+export type GalaxiasScalarFieldEnum = (typeof GalaxiasScalarFieldEnum)[keyof typeof GalaxiasScalarFieldEnum]
+
+
+export const Hoyo_negroScalarFieldEnum = {
+  id: 'id',
+  cliente_id: 'cliente_id',
+  fecha: 'fecha',
+  seleccion: 'seleccion',
+  total: 'total',
+  id_galaxias: 'id_galaxias'
+} as const
+
+export type Hoyo_negroScalarFieldEnum = (typeof Hoyo_negroScalarFieldEnum)[keyof typeof Hoyo_negroScalarFieldEnum]
+
+
+export const SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+} as const
+
+export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const estrellasOrderByRelevanceFieldEnum = {
+  name: 'name',
+  phone_number: 'phone_number',
+  email: 'email',
+  password: 'password',
+  horario: 'horario'
+} as const
+
+export type estrellasOrderByRelevanceFieldEnum = (typeof estrellasOrderByRelevanceFieldEnum)[keyof typeof estrellasOrderByRelevanceFieldEnum]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 

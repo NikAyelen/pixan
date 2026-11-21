@@ -17,4 +17,18 @@ import * as Prisma from './internal/prismaNamespaceBrowser.js'
 export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
-
+/**
+ * Model estrellas
+ * 
+ */
+export type estrellas = Prisma.estrellasModel
+/**
+ * Model galaxias
+ * The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+ */
+export type galaxias = Prisma.galaxiasModel
+/**
+ * Model hoyo_negro
+ * 
+ */
+export type hoyo_negro = Prisma.hoyo_negroModel

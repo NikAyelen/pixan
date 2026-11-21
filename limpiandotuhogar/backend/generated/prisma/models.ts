@@ -8,4 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/estrellas.js'
+export type * from './models/galaxias.js'
+export type * from './models/hoyo_negro.js'
 export type * from './commonInputTypes.js'

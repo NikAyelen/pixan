@@ -9,7 +9,18 @@
 * 🟢 You can import this file directly.
 */
 
+export const galaxias_tipo = {
+  CASA: 'CASA',
+  OFICINA: 'OFICINA',
+  DEPARTAMENTO: 'DEPARTAMENTO'
+} as const
+
+export type galaxias_tipo = (typeof galaxias_tipo)[keyof typeof galaxias_tipo]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const estrellas_rol = {
+  CLIENTE: 'CLIENTE',
+  TRABAJADOR: 'TRABAJADOR'
+} as const
+
+export type estrellas_rol = (typeof estrellas_rol)[keyof typeof estrellas_rol]

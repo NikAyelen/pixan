@@ -397,7 +397,9 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
-
+  estrellas: 'estrellas',
+  galaxias: 'galaxias',
+  hoyo_negro: 'hoyo_negro'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -413,10 +415,209 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: never
+    modelProps: "estrellas" | "galaxias" | "hoyo_negro"
     txIsolationLevel: TransactionIsolationLevel
   }
-  model: {}
+  model: {
+    estrellas: {
+      payload: Prisma.$estrellasPayload<ExtArgs>
+      fields: Prisma.estrellasFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.estrellasFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.estrellasFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload>
+        }
+        findFirst: {
+          args: Prisma.estrellasFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.estrellasFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload>
+        }
+        findMany: {
+          args: Prisma.estrellasFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload>[]
+        }
+        create: {
+          args: Prisma.estrellasCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload>
+        }
+        createMany: {
+          args: Prisma.estrellasCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.estrellasDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload>
+        }
+        update: {
+          args: Prisma.estrellasUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload>
+        }
+        deleteMany: {
+          args: Prisma.estrellasDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.estrellasUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.estrellasUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$estrellasPayload>
+        }
+        aggregate: {
+          args: Prisma.EstrellasAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEstrellas>
+        }
+        groupBy: {
+          args: Prisma.estrellasGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EstrellasGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.estrellasCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EstrellasCountAggregateOutputType> | number
+        }
+      }
+    }
+    galaxias: {
+      payload: Prisma.$galaxiasPayload<ExtArgs>
+      fields: Prisma.galaxiasFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.galaxiasFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.galaxiasFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload>
+        }
+        findFirst: {
+          args: Prisma.galaxiasFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.galaxiasFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload>
+        }
+        findMany: {
+          args: Prisma.galaxiasFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload>[]
+        }
+        create: {
+          args: Prisma.galaxiasCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload>
+        }
+        createMany: {
+          args: Prisma.galaxiasCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.galaxiasDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload>
+        }
+        update: {
+          args: Prisma.galaxiasUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload>
+        }
+        deleteMany: {
+          args: Prisma.galaxiasDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.galaxiasUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.galaxiasUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$galaxiasPayload>
+        }
+        aggregate: {
+          args: Prisma.GalaxiasAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGalaxias>
+        }
+        groupBy: {
+          args: Prisma.galaxiasGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GalaxiasGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.galaxiasCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GalaxiasCountAggregateOutputType> | number
+        }
+      }
+    }
+    hoyo_negro: {
+      payload: Prisma.$hoyo_negroPayload<ExtArgs>
+      fields: Prisma.hoyo_negroFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.hoyo_negroFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.hoyo_negroFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload>
+        }
+        findFirst: {
+          args: Prisma.hoyo_negroFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.hoyo_negroFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload>
+        }
+        findMany: {
+          args: Prisma.hoyo_negroFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload>[]
+        }
+        create: {
+          args: Prisma.hoyo_negroCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload>
+        }
+        createMany: {
+          args: Prisma.hoyo_negroCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        delete: {
+          args: Prisma.hoyo_negroDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload>
+        }
+        update: {
+          args: Prisma.hoyo_negroUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload>
+        }
+        deleteMany: {
+          args: Prisma.hoyo_negroDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.hoyo_negroUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        upsert: {
+          args: Prisma.hoyo_negroUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$hoyo_negroPayload>
+        }
+        aggregate: {
+          args: Prisma.Hoyo_negroAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateHoyo_negro>
+        }
+        groupBy: {
+          args: Prisma.hoyo_negroGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Hoyo_negroGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.hoyo_negroCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Hoyo_negroCountAggregateOutputType> | number
+        }
+      }
+    }
+  }
 } & {
   other: {
     payload: any
@@ -455,7 +656,161 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const EstrellasScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  phone_number: 'phone_number',
+  email: 'email',
+  password: 'password',
+  rol: 'rol',
+  horario: 'horario'
+} as const
 
+export type EstrellasScalarFieldEnum = (typeof EstrellasScalarFieldEnum)[keyof typeof EstrellasScalarFieldEnum]
+
+
+export const GalaxiasScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  habitaciones: 'habitaciones',
+  banos: 'banos',
+  medios_banos: 'medios_banos',
+  pisos: 'pisos'
+} as const
+
+export type GalaxiasScalarFieldEnum = (typeof GalaxiasScalarFieldEnum)[keyof typeof GalaxiasScalarFieldEnum]
+
+
+export const Hoyo_negroScalarFieldEnum = {
+  id: 'id',
+  cliente_id: 'cliente_id',
+  fecha: 'fecha',
+  seleccion: 'seleccion',
+  total: 'total',
+  id_galaxias: 'id_galaxias'
+} as const
+
+export type Hoyo_negroScalarFieldEnum = (typeof Hoyo_negroScalarFieldEnum)[keyof typeof Hoyo_negroScalarFieldEnum]
+
+
+export const SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+} as const
+
+export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const estrellasOrderByRelevanceFieldEnum = {
+  name: 'name',
+  phone_number: 'phone_number',
+  email: 'email',
+  password: 'password',
+  horario: 'horario'
+} as const
+
+export type estrellasOrderByRelevanceFieldEnum = (typeof estrellasOrderByRelevanceFieldEnum)[keyof typeof estrellasOrderByRelevanceFieldEnum]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+
+/**
+ * Field references
+ */
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'String'
+ */
+export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
+    
+
+
+/**
+ * Reference to a field of type 'estrellas_rol'
+ */
+export type Enumestrellas_rolFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'estrellas_rol'>
+    
+
+
+/**
+ * Reference to a field of type 'galaxias_tipo'
+ */
+export type Enumgalaxias_tipoFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'galaxias_tipo'>
+    
+
+
+/**
+ * Reference to a field of type 'DateTime'
+ */
+export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Decimal'
+ */
+export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+/**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
 
 /**
  * Batch Payload for updateMany & deleteMany & createMany
@@ -607,7 +962,11 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
  * Learn more about driver adapters: https://pris.ly/d/driver-adapters
  */
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
-export type GlobalOmitConfig = {}
+export type GlobalOmitConfig = {
+  estrellas?: Prisma.estrellasOmit
+  galaxias?: Prisma.galaxiasOmit
+  hoyo_negro?: Prisma.hoyo_negroOmit
+}
 
 /* Types for Logging */
 export type LogLevel = 'info' | 'query' | 'warn' | 'error'
