@@ -1,8 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../navigation/app_routes.dart';
+import '../services/app_scope.dart';
 import '../theme/app_colors.dart';
-import '../widgets/auth_widgets.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_logo.dart';
+import '../widgets/wave_background.dart';
+import 'main_shell.dart';
 import 'welcome_screen.dart';
 
+/// Pantalla de carga con el logotipo y ondas en movimiento suave.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -11,63 +20,81 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<double> _scale;
+    with TickerProviderStateMixin {
+  late final AnimationController _waves = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 4),
+  )..repeat();
+  late final AnimationController _intro = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..forward();
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    );
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _scale = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
-    _controller.forward();
+    _timer = Timer(const Duration(milliseconds: 2300), _goNext);
+  }
 
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, __, ___) => const WelcomeScreen(),
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
-        ),
-      );
-    });
+  void _goNext() {
+    if (!mounted) return;
+    final loggedIn = AppScope.read(context).isLoggedIn;
+    AppRoutes.resetTo(
+        context, loggedIn ? const MainShell() : const WelcomeScreen());
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _timer?.cancel();
+    _waves.dispose();
+    _intro.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthShell(
-      bottomWaves: true,
-      builder: (context, w, h) => FadeTransition(
-        opacity: _fade,
-        child: ScaleTransition(
-          scale: _scale,
+    final size = MediaQuery.sizeOf(context);
+    final logoSize = (size.width * 0.5).clamp(150.0, 240.0).toDouble();
+    final scale = CurvedAnimation(parent: _intro, curve: Curves.easeOutBack);
+    final fade = CurvedAnimation(
+        parent: _intro, curve: const Interval(0.45, 1, curve: Curves.easeOut));
+
+    return Scaffold(
+      body: AnimatedBuilder(
+        animation: _waves,
+        builder: (context, child) => WaveBackground(
+          headerHeight: size.height * 0.36,
+          bottomWaves: true,
+          phase: _waves.value,
+          child: child,
+        ),
+        child: Center(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(height: h * 0.12),
-              AppLogo(size: w * 0.483),
-              SizedBox(height: h * 0.004),
-              Text(
-                AppColors.appName,
-                style: TextStyle(
-                  fontSize: w * 0.155,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                  height: 1.15,
+              ScaleTransition(
+                scale: Tween<double>(begin: 0.6, end: 1).animate(scale),
+                child: AppLogo(size: logoSize, hero: true),
+              ),
+              const SizedBox(height: 22),
+              FadeTransition(
+                opacity: fade,
+                child: Column(
+                  children: [
+                    Text('¿Qué limpiamos?',
+                        style: AppText.display.copyWith(fontSize: 28)),
+                    const SizedBox(height: 4),
+                    Text('Colaboradores',
+                        style: AppText.subtitle
+                            .copyWith(color: AppColors.inkSoft)),
+                    const SizedBox(height: 26),
+                    const SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: CircularProgressIndicator(strokeWidth: 2.6),
+                    ),
+                  ],
                 ),
               ),
             ],

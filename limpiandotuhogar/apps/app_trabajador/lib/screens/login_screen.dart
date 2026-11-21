@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+
+import '../data/mock_data.dart';
+import '../navigation/app_routes.dart';
+import '../services/app_scope.dart';
+import '../services/haptics.dart';
+import '../services/validators.dart';
 import '../theme/app_colors.dart';
-import '../widgets/auth_widgets.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_logo.dart';
+import '../widgets/app_text_field.dart';
+import '../widgets/buttons.dart';
+import '../widgets/common.dart';
+import '../widgets/wave_background.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
+import 'main_shell.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,122 +25,170 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  bool _obscure = true;
+  final _email = TextEditingController();
+  final _password = TextEditingController();
   bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
+    _email.dispose();
+    _password.dispose();
     super.dispose();
   }
 
+  void _fillDemo() {
+    setState(() {
+      _email.text = MockData.demoEmail;
+      _password.text = MockData.demoPassword;
+      _error = null;
+    });
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _error = null);
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
-    // TODO: conectar con el backend (POST /auth/login)
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Simula el tiempo de verificación (todo ocurre en el dispositivo).
+    await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
-    setState(() => _loading = false);
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (_) => false,
-    );
+    final error = AppScope.read(context).login(_email.text, _password.text);
+    if (error != null) {
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+      return;
+    }
+    Haptics.success(context);
+    AppRoutes.resetTo(context, const MainShell());
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthShell(
-      builder: (context, w, h) => Padding(
-        padding: EdgeInsets.symmetric(horizontal: w * 0.09),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Center(child: BrandHeader(w: w, h: h)),
-              SizedBox(height: h * 0.05),
-              AuthField(
-                label: 'Correo',
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                validator: (v) {
-                  final value = v?.trim() ?? '';
-                  if (value.isEmpty) return 'Ingresa tu correo';
-                  if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
-                    return 'Correo no válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 22),
-              AuthField(
-                label: 'Contraseña',
-                controller: _passCtrl,
-                obscure: _obscure,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-                suffix: IconButton(
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: AppColors.hint,
-                    size: 20,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Ingresa tu contraseña';
-                  if (v.length < 6) return 'Mínimo 6 caracteres';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 22),
-                  child: LinkText(
-                    '¿Olvidaste tu contraseña?',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const ForgotPasswordScreen()),
-                    ),
+    final size = MediaQuery.sizeOf(context);
+    final pad = AppSpacing.screen(context) + 8;
+    final logoSize = (size.width * 0.40).clamp(120.0, 190.0).toDouble();
+
+    return Scaffold(
+      body: WaveBackground(
+        headerHeight: size.height * 0.36,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+              pad, MediaQuery.paddingOf(context).top + 8, pad, 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: CircleIconButton(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    tooltip: 'Regresar',
+                    background: AppColors.fade(Colors.white, 0.7),
+                    onPressed: () => Navigator.of(context).maybePop(),
                   ),
                 ),
-              ),
-              SizedBox(height: h * 0.05),
-              AuthButton.primary('Iniciar Sesión', _loading ? null : _submit,
-                  loading: _loading),
-              const SizedBox(height: 26),
-              Wrap(
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 6,
-                children: [
-                  const Text(
-                    '¿No tienes cuenta?',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.dark,
-                    ),
+                Center(child: AppLogo(size: logoSize, hero: true)),
+                const SizedBox(height: 8),
+                Text('¿Qué limpiamos?',
+                    textAlign: TextAlign.center,
+                    style: AppText.display.copyWith(fontSize: 30)),
+                Text('Inicia sesión para ver tus solicitudes',
+                    textAlign: TextAlign.center, style: AppText.body),
+                const SizedBox(height: 26),
+                AppTextField(
+                  label: 'Correo',
+                  hint: 'tu@correo.com',
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.email],
+                  prefixIcon: Icons.mail_outline_rounded,
+                  validator: Validators.email,
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'Contraseña',
+                  hint: 'Tu contraseña',
+                  controller: _password,
+                  obscure: true,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.password],
+                  prefixIcon: Icons.lock_outline_rounded,
+                  onSubmitted: (_) => _submit(),
+                  validator: (v) =>
+                      Validators.notEmpty(v, field: 'La contraseña'),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: AppLinkButton(
+                    label: '¿Olvidaste tu contraseña?',
+                    fontSize: 13,
+                    onPressed: () => AppRoutes.push(
+                        context, ForgotPasswordScreen(initialEmail: _email.text)),
                   ),
-                  LinkText(
-                    'Crear cuenta',
-                    size: 16,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const RegisterScreen()),
+                ),
+                AnimatedSize(
+                  duration: AppDurations.medium,
+                  child: _error == null
+                      ? const SizedBox(width: double.infinity)
+                      : Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: NoticeBox.error(message: _error!),
+                        ),
+                ),
+                const SizedBox(height: 8),
+                AppButton(
+                  label: 'Iniciar sesión',
+                  loading: _loading,
+                  onPressed: _submit,
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text('¿No tienes cuenta?', style: AppText.bodyStrong),
+                    AppLinkButton(
+                      label: 'Crear cuenta',
+                      onPressed: () => Navigator.of(context).pushReplacement(
+                          AppRoutes.fadeSlide(const RegisterScreen())),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                AppCard(
+                  color: AppColors.ice,
+                  shadow: false,
+                  onTap: _fillDemo,
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.science_outlined,
+                          color: AppColors.primaryStrong),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Cuenta de prueba', style: AppText.label),
+                            Text(
+                                '${MockData.demoEmail} · ${MockData.demoPassword}',
+                                style: AppText.caption),
+                          ],
+                        ),
+                      ),
+                      Text('Usar',
+                          style: AppText.label
+                              .copyWith(color: AppColors.primaryStrong)),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
