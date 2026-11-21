@@ -14,7 +14,6 @@ export interface CreateHoyoNegroData {
   id_galaxias: number;
 }
 
-// Nunca devolvemos el password del cliente
 const incluir = {
   galaxias: true,
   estrellas: {
@@ -22,51 +21,103 @@ const incluir = {
   },
 };
 
-export const getAll = () =>
-  prisma.hoyo_negro.findMany({ include: incluir, orderBy: { id: "desc" } });
+const seleccionTrabajador = {
+  id: true,
+  name: true,
+  phone_number: true,
+} as const;
 
-export const getById = (id: number) =>
-  prisma.hoyo_negro.findUnique({ where: { id }, include: incluir });
+async function conTrabajador<T extends { trabajador_id: number | null }>(
+  items: T[],
+) {
+  const ids = [
+    ...new Set(
+      items
+        .map((i) => i.trabajador_id)
+        .filter((id): id is number => id !== null),
+    ),
+  ];
+  const trabajadores = ids.length
+    ? await prisma.estrellas.findMany({
+        where: { id: { in: ids } },
+        select: seleccionTrabajador,
+      })
+    : [];
+  const porId = new Map(trabajadores.map((t) => [t.id, t]));
+  return items.map((i) => ({
+    ...i,
+    trabajador:
+      i.trabajador_id !== null ? (porId.get(i.trabajador_id) ?? null) : null,
+  }));
+}
 
-export const getByCliente = (cliente_id: number) =>
-  prisma.hoyo_negro.findMany({
-    where: { cliente_id },
-    include: incluir,
-    orderBy: { id: "desc" },
-  });
+async function conTrabajadorUno<T extends { trabajador_id: number | null }>(
+  item: T | null,
+) {
+  if (!item) return null;
+  const [conNombre] = await conTrabajador([item]);
+  return conNombre;
+}
 
-export const getByTrabajador = (trabajador_id: number) =>
-  prisma.hoyo_negro.findMany({
-    where: { trabajador_id },
-    include: incluir,
-    orderBy: { id: "desc" },
-  });
+export const getAll = async () =>
+  conTrabajador(
+    await prisma.hoyo_negro.findMany({
+      include: incluir,
+      orderBy: { id: "desc" },
+    }),
+  );
 
-// Lo que ve el trabajador: solicitudes que nadie ha tomado todavía
-export const getDisponibles = () =>
-  prisma.hoyo_negro.findMany({
-    where: { estado: ESTADO.DISPONIBLE },
-    include: incluir,
-    orderBy: { id: "desc" },
-  });
+export const getById = async (id: number) =>
+  conTrabajadorUno(
+    await prisma.hoyo_negro.findUnique({ where: { id }, include: incluir }),
+  );
 
-export const create = ({
+export const getByCliente = async (cliente_id: number) =>
+  conTrabajador(
+    await prisma.hoyo_negro.findMany({
+      where: { cliente_id },
+      include: incluir,
+      orderBy: { id: "desc" },
+    }),
+  );
+
+export const getByTrabajador = async (trabajador_id: number) =>
+  conTrabajador(
+    await prisma.hoyo_negro.findMany({
+      where: { trabajador_id },
+      include: incluir,
+      orderBy: { id: "desc" },
+    }),
+  );
+
+export const getDisponibles = async () =>
+  conTrabajador(
+    await prisma.hoyo_negro.findMany({
+      where: { estado: ESTADO.DISPONIBLE },
+      include: incluir,
+      orderBy: { id: "desc" },
+    }),
+  );
+
+export const create = async ({
   cliente_id,
   fecha,
   seleccion,
   total,
   id_galaxias,
 }: CreateHoyoNegroData) =>
-  prisma.hoyo_negro.create({
-    data: {
-      cliente_id,
-      fecha: fecha ? new Date(fecha) : new Date(),
-      seleccion,
-      total,
-      id_galaxias,
-    },
-    include: incluir,
-  });
+  conTrabajadorUno(
+    await prisma.hoyo_negro.create({
+      data: {
+        cliente_id,
+        fecha: fecha ? new Date(fecha) : new Date(),
+        seleccion,
+        total,
+        id_galaxias,
+      },
+      include: incluir,
+    }),
+  );
 
 export const esTrabajador = async (id: number) =>
   (await prisma.estrellas.count({ where: { id, rol: "TRABAJADOR" } })) > 0;

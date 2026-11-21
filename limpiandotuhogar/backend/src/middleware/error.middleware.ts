@@ -4,6 +4,7 @@ import { AppError } from "../errors/AppError";
 export const rutaNoEncontrada: RequestHandler = (req, res) => {
     res.status(400).json({
         mensaje: `No existe la ruta ${req.method} ${req.path}`,
+        error: `No existe la ruta ${req.method} ${req.path}`,
     });
 };
 
@@ -21,6 +22,10 @@ export const manejarErrores: ErrorRequestHandler = (
         mensaje:
             error instanceof Error
             ? error.message
-            : "Error interno del servidor"
+            : "Error interno del servidor",
+        error:
+            error instanceof Error
+            ? error.message
+            : "Error interno del servidor",
     });
 };

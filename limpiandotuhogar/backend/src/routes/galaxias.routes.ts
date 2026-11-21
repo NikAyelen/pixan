@@ -1,10 +1,10 @@
-const express = require('express');
-const galaxiasController = require('./galaxias.controller');
+import { Router } from "express";
+import * as galaxiasController from "../controller/galaxias.controller";
 
-const router = express.Router();
+const router = Router();
 
 router.get('/', galaxiasController.getAll);
 router.get('/:id', galaxiasController.getById);
 router.post('/', galaxiasController.create);
 
-module.exports = router;
+export default router;
