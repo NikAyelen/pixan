@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_bottom_nav.dart';
 import 'historial_screen.dart';
-import 'welcome_screen.dart';
 
 // PALETA DE COLORES AUTH
 class AuthColors {

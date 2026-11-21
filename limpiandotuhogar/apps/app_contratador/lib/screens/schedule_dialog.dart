@@ -26,11 +26,16 @@ class ScheduleDialog extends StatefulWidget {
 class _ScheduleDialogState extends State<ScheduleDialog> {
   static const Duration _anim = Duration(milliseconds: 300);
 
+  static const String _msgFalta = 'Elige horario y fecha para continuar';
+  static const String _msgPasado =
+      'Elige una fecha y hora que aún no hayan pasado';
+
   TimeOfDay? time;
   DateTime? date;
   bool scheduleOpen = true; // sección de horario y fecha abierta
   bool confirmed = false; // ya dio Ok -> aparece la elección de colaborador
   bool showError = false;
+  String errorMsg = _msgFalta;
 
   Widget _themed(BuildContext context, Widget? child) {
     return Theme(
@@ -64,7 +69,12 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
       initialTime: time ?? const TimeOfDay(hour: 9, minute: 0),
       builder: _themed,
     );
-    if (picked != null && mounted) setState(() => time = picked);
+    if (picked != null && mounted) {
+      setState(() {
+        time = picked;
+        showError = false;
+      });
+    }
   }
 
   Future<void> _pickDate() async {
@@ -76,14 +86,36 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
       lastDate: hoy.add(const Duration(days: 365)),
       builder: _themed,
     );
-    if (picked != null && mounted) setState(() => date = picked);
+    if (picked != null && mounted) {
+      setState(() {
+        date = picked;
+        showError = false;
+      });
+    }
   }
 
   void _confirmar() {
-    if (time == null || date == null) {
-      setState(() => showError = true);
+    final d = date;
+    final t = time;
+    if (t == null || d == null) {
+      setState(() {
+        showError = true;
+        errorMsg = _msgFalta;
+      });
       return;
     }
+
+    // La fecha y hora combinadas deben ser futuras: si no, el trabajador
+    // no podría aceptar la solicitud.
+    final fecha = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+    if (!fecha.isAfter(DateTime.now())) {
+      setState(() {
+        showError = true;
+        errorMsg = _msgPasado;
+      });
+      return;
+    }
+
     setState(() {
       showError = false;
       confirmed = true;
@@ -263,11 +295,11 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
             ],
           ),
           if (showError)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
               child: Text(
-                'Elige horario y fecha para continuar',
-                style: TextStyle(
+                errorMsg,
+                style: const TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFFC0392B),
@@ -320,14 +352,11 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: filled
-                          ? FlowColors.navy
-                          : const Color(0xFF8A9199),
+                      color: filled ? FlowColors.navy : const Color(0xFF8A9199),
                     ),
                   ),
                 ),
-                if (icon != null)
-                  Icon(icon, size: 14, color: FlowColors.navy),
+                if (icon != null) Icon(icon, size: 14, color: FlowColors.navy),
               ],
             ),
           ),
@@ -414,9 +443,8 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
         decoration: BoxDecoration(
           color: filled ? FlowColors.teal : Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: filled
-              ? null
-              : Border.all(color: FlowColors.teal, width: 1.5),
+          border:
+              filled ? null : Border.all(color: FlowColors.teal, width: 1.5),
         ),
         child: Row(
           children: [

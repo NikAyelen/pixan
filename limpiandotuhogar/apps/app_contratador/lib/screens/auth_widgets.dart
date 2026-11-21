@@ -196,10 +196,14 @@ class AuthPrimaryButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.loading = false,
   });
 
   final String label;
   final VoidCallback onPressed;
+
+  /// Mientras es `true` el botón se deshabilita y muestra un indicador.
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -207,19 +211,31 @@ class AuthPrimaryButton extends StatelessWidget {
       width: double.infinity,
       height: 46,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AuthColors.teal,
           foregroundColor: Colors.white,
+          disabledBackgroundColor: AuthColors.teal,
+          disabledForegroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-        ),
+        child: loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                label,
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              ),
       ),
     );
   }

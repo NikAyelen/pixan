@@ -11,12 +11,16 @@ class ServiceRequestScreen extends StatefulWidget {
     required this.price,
     required this.image,
     required this.basePrice,
+    this.property = const PropertyData(),
   });
 
   final String serviceTitle;
   final String price; // ej. "Desde $400"
   final String image;
   final int basePrice; // ej. 400
+
+  /// Datos del inmueble y dirección capturados en «Datos del inmueble».
+  final PropertyData property;
 
   @override
   State<ServiceRequestScreen> createState() => _ServiceRequestScreenState();
@@ -106,6 +110,8 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       notes: notasController.text.trim(),
       priceMin: _precioMin,
       priceMax: _precioMax,
+      extrasTotal: _extrasTotal,
+      property: widget.property,
     );
 
     showDialog(

@@ -1,5 +1,37 @@
 import 'package:flutter/material.dart';
 
+/// Datos del inmueble que captura «Datos del inmueble»
+/// (se guardan en la tabla `galaxias` del backend).
+class PropertyData {
+  const PropertyData({
+    this.type = 'Casa',
+    this.rooms = 0,
+    this.fullBaths = 0,
+    this.halfBaths = 0,
+    this.floors = 1,
+    this.address = '',
+  });
+
+  final String type; // 'Casa' | 'Oficina' | 'Departamento'
+  final int rooms;
+  final int fullBaths;
+  final int halfBaths;
+  final int floors;
+  final String address;
+
+  /// Valor que espera el backend: CASA | OFICINA | DEPARTAMENTO.
+  String get apiType {
+    switch (type) {
+      case 'Oficina':
+        return 'OFICINA';
+      case 'Departamento':
+        return 'DEPARTAMENTO';
+      default:
+        return 'CASA';
+    }
+  }
+}
+
 /// Datos de la solicitud que se van juntando a lo largo del flujo:
 /// Servicios → Datos del inmueble → Áreas/extras → Horario → Colaborador → Cotización.
 class ServiceRequestData {
@@ -10,6 +42,8 @@ class ServiceRequestData {
     required this.notes,
     required this.priceMin,
     required this.priceMax,
+    this.extrasTotal = 0,
+    this.property = const PropertyData(),
     this.date,
     this.time,
     this.collaborator,
@@ -21,6 +55,13 @@ class ServiceRequestData {
   final String notes;
   final int priceMin;
   final int priceMax;
+
+  /// Suma de los precios de los servicios extra elegidos.
+  final int extrasTotal;
+
+  /// Datos del inmueble y dirección del servicio.
+  final PropertyData property;
+
   final DateTime? date;
   final TimeOfDay? time;
   final String? collaborator; // solo si lo eligió personalmente
@@ -37,10 +78,20 @@ class ServiceRequestData {
       notes: notes,
       priceMin: priceMin,
       priceMax: priceMax,
+      extrasTotal: extrasTotal,
+      property: property,
       date: date ?? this.date,
       time: time ?? this.time,
       collaborator: collaborator ?? this.collaborator,
     );
+  }
+
+  /// Fecha y hora elegidas combinadas en un solo valor (hora local).
+  DateTime? get scheduledAt {
+    final d = date;
+    final t = time;
+    if (d == null || t == null) return null;
+    return DateTime(d.year, d.month, d.day, t.hour, t.minute);
   }
 
   /// dd/mm/aa

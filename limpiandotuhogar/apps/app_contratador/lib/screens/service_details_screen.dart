@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'service_flow_widgets.dart';
+import 'service_request_data.dart';
 import 'service_request_screen.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
@@ -38,6 +39,13 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   final List<int> cantidades = [0, 0, 0, 1];
   final List<bool> abiertas = [true, false, false, false];
   final List<bool> confirmadas = [false, false, false, false];
+  final TextEditingController direccionController = TextEditingController();
+
+  @override
+  void dispose() {
+    direccionController.dispose();
+    super.dispose();
+  }
 
   void _confirmar(int i) {
     setState(() {
@@ -47,8 +55,17 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   void _continuar({required bool guardar}) {
+    final direccion = direccionController.text.trim();
+    if (direccion.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Escribe la dirección del servicio')),
+      );
+      return;
+    }
+    FocusScope.of(context).unfocus();
+
     if (guardar) {
-      // TODO: guardar los datos del inmueble cuando exista la base de datos
+      // TODO: guardar los datos del inmueble para reutilizarlos (fuera del MVP)
     }
     Navigator.push(
       context,
@@ -59,6 +76,14 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
           price: widget.price,
           image: widget.image,
           basePrice: widget.basePrice,
+          property: PropertyData(
+            type: tipoCasa,
+            rooms: cantidades[0],
+            fullBaths: cantidades[1],
+            halfBaths: cantidades[2],
+            floors: cantidades[3],
+            address: direccion,
+          ),
         ),
       ),
     );
@@ -72,7 +97,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
         child: Column(
           children: [
             FlowHeader(title: widget.serviceTitle),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -118,11 +142,61 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                           ],
                         ),
                       ),
+
+                    // DIRECCIÓN
+                    const SizedBox(height: 6),
+                    const FlowLabel('Dirección del servicio', size: 13),
+                    const SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x26000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: direccionController,
+                        maxLines: 2,
+                        textCapitalization: TextCapitalization.sentences,
+                        cursorColor: FlowColors.teal,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF1C1C1C),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Calle, número, colonia o SM...',
+                          hintStyle: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF8A9199),
+                          ),
+                          filled: true,
+                          fillColor: FlowColors.lightBlue,
+                          contentPadding: const EdgeInsets.all(16),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: FlowColors.teal,
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: FlowColors.teal,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
               child: Row(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../services/api_client.dart';
+import '../services/session.dart';
 import 'auth_widgets.dart';
 import 'home_screen.dart';
 
@@ -17,6 +20,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmController = TextEditingController();
 
+  bool _loading = false;
+
   @override
   void dispose() {
     nameController.dispose();
@@ -33,7 +38,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void crearCuenta() {
+  Future<void> crearCuenta() async {
+    if (_loading) return;
     FocusScope.of(context).unfocus();
 
     final nombre = nameController.text.trim();
@@ -67,16 +73,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // TODO: registrar usuario cuando exista la base de datos
+    setState(() => _loading = true);
 
-    // Va al inicio y quita Welcome, Login y Registro de la pila,
-    // para que el botón atrás no regrese a ellas.
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => HomeScreen(userName: nombre),
-      ),
-      (route) => false,
-    );
+    try {
+      final user = await AuthApi.signup(
+        nombre: nombre,
+        correo: correo,
+        telefono: telefono,
+        password: contrasena,
+        rol: 'CLIENTE',
+      );
+      if (!mounted) return;
+
+      Session.instance.start(user);
+
+      // Va al inicio y quita Welcome, Login y Registro de la pila,
+      // para que el botón atrás no regrese a ellas.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(userName: user.nombre),
+        ),
+        (route) => false,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      // 409 = correo o teléfono ya registrado; el mensaje viene del backend.
+      _aviso(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _aviso('No se pudo conectar con el servidor.');
+    }
   }
 
   @override
@@ -135,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: UploadBox(
                 label: 'Subir frente',
                 onTap: () {
-                  // TODO: elegir foto (image_picker)
+                  // TODO: elegir foto (image_picker). Fuera del MVP.
                 },
               ),
             ),
@@ -144,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: UploadBox(
                 label: 'Subir reverso',
                 onTap: () {
-                  // TODO: elegir foto (image_picker)
+                  // TODO: elegir foto (image_picker). Fuera del MVP.
                 },
               ),
             ),
@@ -153,6 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 28),
         AuthPrimaryButton(
           label: 'Crear cuenta',
+          loading: _loading,
           onPressed: crearCuenta,
         ),
       ],
