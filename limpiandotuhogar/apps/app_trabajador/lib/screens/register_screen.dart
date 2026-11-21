@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 
 import '../data/mock_data.dart';
 import '../navigation/app_routes.dart';
+import '../services/api_client.dart';
 import '../services/app_scope.dart';
 import '../services/haptics.dart';
 import '../services/photo_picker.dart';
+import '../services/session.dart';
 import '../services/validators.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -94,8 +96,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _showStep2Errors = true);
     if (_step2Error != null) return;
     setState(() => _loading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 1100));
-    if (!mounted) return;
+
+    // 1) Crear la cuenta en el backend.
+    try {
+      final user = await AuthApi.signup(
+        nombre: _name.text,
+        correo: _email.text,
+        telefono: _phone.text,
+        password: _password.text,
+      );
+      if (!mounted) return;
+      Session.instance.start(user);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        // 409 = correo o teléfono repetido: regresamos al paso de datos.
+        if (e.statusCode == 409) _step = 0;
+      });
+      showToast(context, e.message, error: true);
+      return;
+    }
+
+    // 2) INE y especialidades todavía no existen en la BD:
+    //    se siguen guardando localmente como antes.
     AppScope.read(context).register(
       name: _name.text,
       phone: _phone.text,
@@ -179,30 +203,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Form(
                   key: _formKey,
                   child: AnimatedSwitcher(
-                  duration: AppDurations.slow,
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final forward = child.key == const ValueKey(1);
-                    final begin = Offset(forward ? 0.15 : -0.15, 0);
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween(begin: begin, end: Offset.zero)
-                            .animate(animation),
-                        child: child,
-                      ),
-                    );
-                  },
-                  layoutBuilder: (current, previous) => Stack(
-                    alignment: Alignment.topCenter,
-                    children: [...previous, if (current != null) current],
-                  ),
-                  child: _step == 0
-                      ? KeyedSubtree(
-                          key: const ValueKey(0), child: _personalForm())
-                      : KeyedSubtree(
-                          key: const ValueKey(1), child: _identityStep()),
+                    duration: AppDurations.slow,
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      final forward = child.key == const ValueKey(1);
+                      final begin = Offset(forward ? 0.15 : -0.15, 0);
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween(begin: begin, end: Offset.zero)
+                              .animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    layoutBuilder: (current, previous) => Stack(
+                      alignment: Alignment.topCenter,
+                      children: [...previous, if (current != null) current],
+                    ),
+                    child: _step == 0
+                        ? KeyedSubtree(
+                            key: const ValueKey(0), child: _personalForm())
+                        : KeyedSubtree(
+                            key: const ValueKey(1), child: _identityStep()),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -228,65 +252,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _personalForm() {
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppTextField(
-            label: 'Nombre completo',
-            hint: 'Tu nombre y apellidos',
-            controller: _name,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.name],
-            validator: Validators.name,
-          ),
-          const SizedBox(height: 14),
-          AppTextField(
-            label: 'Número telefónico',
-            hint: '10 dígitos',
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
-            validator: Validators.phone,
-          ),
-          const SizedBox(height: 14),
-          AppTextField(
-            label: 'Correo electrónico',
-            hint: '123@ejemplo.com',
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            validator: Validators.email,
-          ),
-          const SizedBox(height: 14),
-          AppTextField(
-            label: 'Contraseña',
-            hint: 'Mínimo 8 caracteres',
-            controller: _password,
-            obscure: true,
-            textInputAction: TextInputAction.next,
-            validator: Validators.password,
-          ),
-          const SizedBox(height: 14),
-          AppTextField(
-            label: 'Confirmar contraseña',
-            hint: 'Repite tu contraseña',
-            controller: _confirm,
-            obscure: true,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _next(),
-            validator: (v) => Validators.confirm(v, _password.text),
-          ),
-          const SizedBox(height: 22),
-          AppButton(
-            label: 'Continuar',
-            icon: Icons.arrow_forward_rounded,
-            onPressed: _next,
-          ),
-        ],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppTextField(
+          label: 'Nombre completo',
+          hint: 'Tu nombre y apellidos',
+          controller: _name,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+          autofillHints: const [AutofillHints.name],
+          validator: Validators.name,
+        ),
+        const SizedBox(height: 14),
+        AppTextField(
+          label: 'Número telefónico',
+          hint: '10 dígitos',
+          controller: _phone,
+          keyboardType: TextInputType.phone,
+          textInputAction: TextInputAction.next,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          validator: Validators.phone,
+        ),
+        const SizedBox(height: 14),
+        AppTextField(
+          label: 'Correo electrónico',
+          hint: '123@ejemplo.com',
+          controller: _email,
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          validator: Validators.email,
+        ),
+        const SizedBox(height: 14),
+        AppTextField(
+          label: 'Contraseña',
+          hint: 'Mínimo 8 caracteres',
+          controller: _password,
+          obscure: true,
+          textInputAction: TextInputAction.next,
+          validator: Validators.password,
+        ),
+        const SizedBox(height: 14),
+        AppTextField(
+          label: 'Confirmar contraseña',
+          hint: 'Repite tu contraseña',
+          controller: _confirm,
+          obscure: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _next(),
+          validator: (v) => Validators.confirm(v, _password.text),
+        ),
+        const SizedBox(height: 22),
+        AppButton(
+          label: 'Continuar',
+          icon: Icons.arrow_forward_rounded,
+          onPressed: _next,
+        ),
+      ],
     );
   }
 
@@ -416,7 +440,9 @@ class _StepIndicator extends StatelessWidget {
                   curve: Curves.easeOutCubic,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: done ? AppColors.primaryStrong : AppColors.fade(Colors.white, 0.8),
+                    color: done
+                        ? AppColors.primaryStrong
+                        : AppColors.fade(Colors.white, 0.8),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -436,7 +462,8 @@ class _StepIndicator extends StatelessWidget {
 }
 
 class _UploadTile extends StatelessWidget {
-  const _UploadTile({required this.label, required this.path, required this.onTap});
+  const _UploadTile(
+      {required this.label, required this.path, required this.onTap});
 
   final String label;
   final String? path;

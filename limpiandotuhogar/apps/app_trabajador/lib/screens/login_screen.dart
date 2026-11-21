@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-
+import '../services/session.dart';
 import '../data/mock_data.dart';
 import '../navigation/app_routes.dart';
-import '../services/app_scope.dart';
+import '../services/api_client.dart';
 import '../services/haptics.dart';
 import '../services/validators.dart';
 import '../theme/app_colors.dart';
@@ -50,17 +50,23 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _error = null);
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
-    // Simula el tiempo de verificación (todo ocurre en el dispositivo).
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-    final error = AppScope.read(context).login(_email.text, _password.text);
-    if (error != null) {
+
+    try {
+      final user = await AuthApi.login(
+        correo: _email.text,
+        password: _password.text,
+      );
+      if (!mounted) return;
+      Session.instance.start(user);
+    } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error;
+        _error = e.message;
       });
       return;
     }
+
     Haptics.success(context);
     AppRoutes.resetTo(context, const MainShell());
   }
@@ -160,6 +166,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 18),
+                // Solo sirve si esta cuenta existe en la base de datos.
+                // Si ya no la necesitas, borra este AppCard y _fillDemo.
                 AppCard(
                   color: AppColors.ice,
                   shadow: false,
