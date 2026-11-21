@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Error legible para mostrar en pantalla (NoticeBox, toast, etc.).
@@ -27,6 +28,9 @@ class ApiClient {
 
   static const Duration _timeout = Duration(seconds: 12);
 
+  /// Pon en `false` cuando termines de depurar para silenciar los logs.
+  static const bool _debug = true;
+
   static Future<dynamic> get(String path) => _request('GET', path);
 
   static Future<dynamic> post(String path, Map<String, dynamic> body) =>
@@ -34,6 +38,10 @@ class ApiClient {
 
   static Future<dynamic> patch(String path, Map<String, dynamic> body) =>
       _request('PATCH', path, body: body);
+
+  static void _log(String msg) {
+    if (_debug) debugPrint(msg);
+  }
 
   static Future<dynamic> _request(
     String method,
@@ -43,6 +51,8 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final headers = {'Content-Type': 'application/json'};
 
+    _log('[api] → $method $uri ${body == null ? '' : _redact(body)}');
+
     try {
       final response = await (switch (method) {
         'POST' => http.post(uri, headers: headers, body: jsonEncode(body)),
@@ -51,8 +61,10 @@ class ApiClient {
       })
           .timeout(_timeout);
 
-      final decoded =
-          response.body.isEmpty ? null : jsonDecode(response.body);
+      _log(
+          '[api] ← ${response.statusCode} $method $path ${_short(response.body)}');
+
+      final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return decoded;
@@ -60,20 +72,36 @@ class ApiClient {
 
       // El backend responde { error: "..." } (o { message: "..." }).
       final message = decoded is Map
-          ? (decoded['error'] ?? decoded['message'])?.toString()
+          ? (decoded['error'] ?? decoded['mensaje'] ?? decoded['message'])
+              ?.toString()
           : null;
       throw ApiException(
         message ?? 'Error del servidor (${response.statusCode}).',
         statusCode: response.statusCode,
       );
     } on TimeoutException {
+      _log('[api] TIMEOUT $method $uri');
       throw ApiException('El servidor tardó demasiado en responder.');
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      _log('[api] ClientException $method $uri: $e');
       throw ApiException('No se pudo conectar con el servidor.');
-    } on FormatException {
+    } on FormatException catch (e) {
+      // Pasa, por ejemplo, cuando el backend devuelve HTML ("Cannot POST /x")
+      // en lugar de JSON.
+      _log('[api] FormatException $method $uri: $e');
       throw ApiException('Respuesta inválida del servidor.');
     }
   }
+
+  /// Oculta la contraseña en los logs.
+  static Map<String, dynamic> _redact(Map<String, dynamic> body) => {
+        for (final e in body.entries)
+          e.key: e.key.toLowerCase().contains('password') ? '***' : e.value,
+      };
+
+  /// Recorta respuestas largas para no llenar la consola.
+  static String _short(String s) =>
+      s.length > 400 ? '${s.substring(0, 400)}…' : s;
 }
 
 // ════════════════════════════════════════════════════════════════════

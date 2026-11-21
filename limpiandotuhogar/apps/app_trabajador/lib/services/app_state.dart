@@ -237,6 +237,8 @@ class AppState extends ChangeNotifier {
     final parts = name.trim().split(RegExp(r'\s+'));
     final first = parts.first;
     final last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    // La INE es opcional: si no se subió, las rutas llegan vacías.
+    final hasIne = ineFrontPath.isNotEmpty && ineBackPath.isNotEmpty;
     _profile = WorkerProfile(
       firstName: first,
       lastName: last,
@@ -244,6 +246,8 @@ class AppState extends ChangeNotifier {
       phone: phone.replaceAll(RegExp(r'\D'), ''),
       password: password,
       specialties: specialties,
+      // OJO: si tu enum IneStatus tiene un valor como "sinSubir", úsalo
+      // aquí cuando !hasIne. Con el enum actual se queda en enRevision.
       ineStatus: IneStatus.enRevision,
       memberSince: now,
       schedule: MockData.defaultSchedule(),
@@ -255,7 +259,9 @@ class AppState extends ChangeNotifier {
     _addNotification(
       NotificationType.sistema,
       '¡Te damos la bienvenida, $first!',
-      'Tu cuenta se creó correctamente. Tu INE aparece «En revisión» (simulado).',
+      hasIne
+          ? 'Tu cuenta se creó correctamente. Tu INE aparece «En revisión» (simulado).'
+          : 'Tu cuenta se creó correctamente. Sube tu INE cuando quieras para verificar tu cuenta.',
     );
     _commit();
   }
@@ -291,6 +297,7 @@ class AppState extends ChangeNotifier {
 
   void _startSync() {
     _stopSync();
+    debugPrint('[sync] start, workerId=$_workerId');
     if (_workerId == null) return;
     unawaited(_restoreAccepted());
     unawaited(_syncOnce());
@@ -309,10 +316,12 @@ class AppState extends ChangeNotifier {
     _syncing = true;
     try {
       final list = await RequestsApi.disponibles();
+      debugPrint('[sync] disponibles: ${list.length}');
       if (_disposed || _workerId != wid) return;
       _applyDisponibles(list);
-    } catch (_) {
+    } catch (e, st) {
       // Sin conexión un momento: se reintenta en el siguiente ciclo.
+      debugPrint('[sync] ERROR: $e\n$st');
     } finally {
       _syncing = false;
     }
@@ -337,6 +346,7 @@ class AppState extends ChangeNotifier {
       );
     }
     if (nuevas.isNotEmpty) {
+      debugPrint('[sync] nuevas agregadas: ${nuevas.length}');
       _requests = [..._requests, ...nuevas];
       changed = true;
     }
@@ -363,6 +373,7 @@ class AppState extends ChangeNotifier {
     if (wid == null) return;
     try {
       final list = await RequestsApi.deTrabajador(wid);
+      debugPrint('[sync] aceptadas por mí: ${list.length}');
       if (_disposed || _workerId != wid) return;
       final nuevas = <ServiceRequest>[];
       for (final remote in list) {
@@ -376,8 +387,9 @@ class AppState extends ChangeNotifier {
         _requests = [..._requests, ...nuevas];
         _commit();
       }
-    } catch (_) {
-      // Se ignora: no es crítico.
+    } catch (e, st) {
+      // No es crítico, pero se registra para depurar.
+      debugPrint('[sync] restoreAccepted ERROR: $e\n$st');
     }
   }
 

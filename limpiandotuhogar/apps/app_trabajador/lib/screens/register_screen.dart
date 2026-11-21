@@ -21,7 +21,7 @@ import '../widgets/wave_background.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
 
-/// Registro en dos pasos: datos personales e identificación oficial.
+/// Registro en dos pasos: datos personales e identificación oficial (opcional).
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -70,10 +70,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  /// La INE es opcional: solo se exige especialidad y términos.
   String? get _step2Error {
-    if (_ineFront == null || _ineBack == null) {
-      return 'Sube el frente y el reverso de tu INE.';
-    }
     if (_specialties.isEmpty) return 'Elige al menos una especialidad.';
     if (!_terms) return 'Debes aceptar los términos para continuar.';
     return null;
@@ -122,17 +120,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // 2) INE y especialidades todavía no existen en la BD:
     //    se siguen guardando localmente como antes.
+    //    La INE es opcional: si no se subió, se manda vacía.
     AppScope.read(context).register(
       name: _name.text,
       phone: _phone.text,
       email: _email.text,
       password: _password.text,
-      ineFrontPath: _ineFront!,
-      ineBackPath: _ineBack!,
+      ineFrontPath: _ineFront ?? '',
+      ineBackPath: _ineBack ?? '',
       specialties: _specialties.toList(),
     );
     // 3) Vincular la cuenta del backend y empezar a recibir solicitudes.
     AppScope.read(context).bindRemoteWorker(user.id);
+
+    final hasIne = _ineFront != null && _ineBack != null;
 
     Haptics.success(context);
     setState(() => _loading = false);
@@ -156,7 +157,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Text('¡Cuenta creada!', style: AppText.title),
             const SizedBox(height: 6),
             Text(
-              'Tu INE quedó «En revisión». Mientras tanto ya puedes recibir solicitudes de clientes.',
+              hasIne
+                  ? 'Tu INE quedó «En revisión». Mientras tanto ya puedes recibir solicitudes de clientes.'
+                  : 'Ya puedes recibir solicitudes de clientes. Puedes subir tu INE más adelante para verificar tu cuenta.',
               style: AppText.body,
               textAlign: TextAlign.center,
             ),
@@ -195,7 +198,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   title: '¡Crea tu cuenta!',
                   subtitle: _step == 0
                       ? 'Ingresa tu información personal.'
-                      : 'Verifica tu identidad y tus especialidades.',
+                      : 'Elige tus especialidades y, si quieres, verifica tu identidad.',
                   subtitleStyle:
                       AppText.subtitle.copyWith(color: AppColors.inkSoft),
                   onBack: _back,
@@ -324,11 +327,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Identificación oficial (INE)',
+        Text('Identificación oficial (INE) · Opcional',
             textAlign: TextAlign.center, style: AppText.heading),
         const SizedBox(height: 4),
-        Text('Las fotos se guardan solo en este dispositivo.',
-            textAlign: TextAlign.center, style: AppText.caption),
+        Text(
+            'Puedes subirla ahora o más tarde. Las fotos se guardan solo en este dispositivo.',
+            textAlign: TextAlign.center,
+            style: AppText.caption),
         const SizedBox(height: 14),
         Row(
           children: [

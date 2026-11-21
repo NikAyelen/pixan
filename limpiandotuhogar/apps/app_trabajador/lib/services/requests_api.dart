@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'api_client.dart';
 
 /// Datos de la casa/oficina (tabla `galaxias`).
@@ -57,7 +59,9 @@ class RemoteHouse {
 /// Una solicitud tal como la guarda el backend (tabla `hoyo_negro`).
 ///
 /// El campo `seleccion` (JSON libre) lo llena la app del cliente con estas
-/// llaves; todas son opcionales y los getters ya traen valores por defecto:
+/// llaves; todas son opcionales y los getters ya traen valores por defecto.
+/// Los getters son tolerantes: un texto puede llegar como String o como
+/// lista (se unen con coma), y los números pueden llegar como num o String.
 ///
 ///   tipoLimpieza, descripcion, servicioExtra, precioExtra, detallesExtra,
 ///   condiciones (lista), areas (lista), metros2, notas, direccion, zona,
@@ -92,6 +96,11 @@ class RemoteRequest {
   factory RemoteRequest.fromJson(Map<String, dynamic> json) {
     final cliente = json['estrellas'] as Map<String, dynamic>?;
     final rawSeleccion = json['seleccion'];
+    final casa = json['galaxias'];
+    if (casa is! Map<String, dynamic>) {
+      throw FormatException(
+          'La solicitud ${json['id']} llegó sin "galaxias" (revisa el include del backend). Llaves recibidas: ${json.keys.toList()}');
+    }
     return RemoteRequest(
       id: json['id'] as int,
       clienteId: json['cliente_id'] as int,
@@ -103,35 +112,80 @@ class RemoteRequest {
       total: double.parse(json['total'].toString()), // Decimal llega como texto
       estado: json['estado'] as String,
       trabajadorId: json['trabajador_id'] as int?,
-      casa: RemoteHouse.fromJson(json['galaxias'] as Map<String, dynamic>),
+      casa: RemoteHouse.fromJson(casa),
       seleccion: rawSeleccion is Map<String, dynamic> ? rawSeleccion : const {},
     );
   }
 
-  // ── Getters sobre `seleccion` ─────────────────────────────────────
-  String get tipoLimpieza =>
-      (seleccion['tipoLimpieza'] as String?) ?? 'Limpieza general';
-  String get descripcion => (seleccion['descripcion'] as String?) ?? '';
-  String? get servicioExtra => seleccion['servicioExtra'] as String?;
-  double get precioExtra => (seleccion['precioExtra'] as num?)?.toDouble() ?? 0;
-  String get detallesExtra => (seleccion['detallesExtra'] as String?) ?? '';
-  List<String> get condiciones => _strings('condiciones');
-  List<String> get areas => _strings('areas');
-  List<String> get fotos => _strings('fotos');
-  int get metros2 => (seleccion['metros2'] as num?)?.toInt() ?? 0;
-  String get notas => (seleccion['notas'] as String?) ?? '';
-  String get direccion => (seleccion['direccion'] as String?) ?? '';
-  String get zona => (seleccion['zona'] as String?) ?? '';
-  int get duracionHoras => (seleccion['duracionHoras'] as num?)?.toInt() ?? 3;
+  // ── Getters sobre `seleccion` (tolerantes al tipo) ────────────────
+  String _text(String key, [String fallback = '']) {
+    final v = seleccion[key];
+    if (v == null) return fallback;
+    if (v is List) {
+      final s = v.map((e) => e.toString()).join(', ');
+      return s.isEmpty ? fallback : s;
+    }
+    final s = v.toString();
+    return s.isEmpty ? fallback : s;
+  }
+
+  int _int(String key, int fallback) {
+    final v = seleccion[key];
+    if (v is num) return v.toInt();
+    return int.tryParse('${v ?? ''}') ?? fallback;
+  }
+
+  double _double(String key, double fallback) {
+    final v = seleccion[key];
+    if (v is num) return v.toDouble();
+    return double.tryParse('${v ?? ''}') ?? fallback;
+  }
 
   List<String> _strings(String key) {
     final v = seleccion[key];
     return v is List ? v.map((e) => e.toString()).toList() : const [];
   }
+
+  String get tipoLimpieza => _text('tipoLimpieza', 'Limpieza general');
+  String get descripcion => _text('descripcion');
+  String? get servicioExtra {
+    final s = _text('servicioExtra');
+    return s.isEmpty ? null : s;
+  }
+
+  double get precioExtra => _double('precioExtra', 0);
+  String get detallesExtra => _text('detallesExtra');
+  List<String> get condiciones => _strings('condiciones');
+  List<String> get areas => _strings('areas');
+  List<String> get fotos => _strings('fotos');
+  int get metros2 => _int('metros2', 0);
+  String get notas => _text('notas');
+  String get direccion => _text('direccion');
+  String get zona => _text('zona');
+  int get duracionHoras => _int('duracionHoras', 3);
 }
 
 class RequestsApi {
   RequestsApi._();
+
+  /// Convierte la lista del backend. Si una fila viene mal, se ignora y se
+  /// deja el motivo en la consola; así una sola fila rota no oculta todas.
+  static List<RemoteRequest> _parseList(dynamic data, String origen) {
+    if (data is! List) {
+      throw FormatException(
+          '$origen: se esperaba una lista y llegó ${data.runtimeType}: $data');
+    }
+    final out = <RemoteRequest>[];
+    for (final e in data) {
+      try {
+        out.add(RemoteRequest.fromJson(e as Map<String, dynamic>));
+      } catch (err) {
+        final id = e is Map ? e['id'] : '?';
+        debugPrint('[api] $origen: fila $id ignorada -> $err');
+      }
+    }
+    return out;
+  }
 
   /// Lado CLIENTE: crea la casa y luego la solicitud de limpieza.
   static Future<RemoteRequest> crear({
@@ -156,20 +210,14 @@ class RequestsApi {
 
   /// Lado TRABAJADOR: solicitudes que nadie ha tomado.
   static Future<List<RemoteRequest>> disponibles() async {
-    final data =
-        await ApiClient.get('/hoyo-negro/disponibles') as List<dynamic>;
-    return data
-        .map((e) => RemoteRequest.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final data = await ApiClient.get('/hoyo-negro/disponibles');
+    return _parseList(data, 'disponibles');
   }
 
   /// Lado TRABAJADOR: las que ya aceptó.
   static Future<List<RemoteRequest>> deTrabajador(int trabajadorId) async {
-    final data = await ApiClient.get('/hoyo-negro?trabajador_id=$trabajadorId')
-        as List<dynamic>;
-    return data
-        .map((e) => RemoteRequest.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final data = await ApiClient.get('/hoyo-negro?trabajador_id=$trabajadorId');
+    return _parseList(data, 'deTrabajador');
   }
 
   /// Lado TRABAJADOR: aceptar. Lanza ApiException (409) si ya la tomó otro.

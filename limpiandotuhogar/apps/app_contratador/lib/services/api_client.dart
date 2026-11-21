@@ -60,7 +60,7 @@ class ApiClient {
 
       // El backend responde { error: "..." } (o { message: "..." }).
       final message = decoded is Map
-          ? (decoded['error'] ?? decoded['message'])?.toString()
+          ? (decoded['error'] ?? decoded['mensaje'] ?? decoded['message'])?.toString()
           : null;
       throw ApiException(
         message ?? 'Error del servidor (${response.statusCode}).',

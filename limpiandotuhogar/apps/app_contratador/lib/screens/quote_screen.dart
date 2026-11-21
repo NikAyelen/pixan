@@ -1,22 +1,61 @@
 import 'package:flutter/material.dart';
-
+import '../services/api_client.dart'; // ApiException
+import '../services/session.dart'; // Session
 import 'service_flow_widgets.dart';
 import 'service_request_data.dart';
+import '../services/solicitud_api.dart'; // el archivo nuevo (en lib/services)
 
-class QuoteScreen extends StatelessWidget {
+class QuoteScreen extends StatefulWidget {
   const QuoteScreen({super.key, required this.request});
 
   final ServiceRequestData request;
 
-  void _confirmar(BuildContext context) {
-    // TODO: guardar la solicitud cuando exista la base de datos
-    // TODO: ir a la pantalla de Avisos ("Tu servicio fue confirmado")
+  @override
+  State<QuoteScreen> createState() => _QuoteScreenState();
+}
+
+class _QuoteScreenState extends State<QuoteScreen> {
+  bool _enviando = false;
+
+  ServiceRequestData get request => widget.request;
+
+  void _mostrar(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('¡Solicitud confirmada!')),
+      SnackBar(content: Text(mensaje)),
     );
   }
 
-  void _editar(BuildContext context) {
+  Future<void> _confirmar() async {
+    if (_enviando) return; // evita dobles toques
+
+    final user = Session.instance.user;
+    if (user == null) {
+      _mostrar('Inicia sesión con tu cuenta para enviar la solicitud.');
+      return;
+    }
+
+    setState(() => _enviando = true);
+    try {
+      // Guarda el inmueble y la solicitud en la base de datos.
+      await SolicitudApi.crear(request, clienteId: user.id);
+      if (!mounted) return;
+      _mostrar('¡Solicitud confirmada!');
+      // Por ahora se regresa al inicio para no enviar la misma solicitud dos veces.
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _mostrar(e.message);
+    } catch (e, st) {
+      debugPrint('[quote] ERROR inesperado: $e\n$st');
+      if (!mounted) return;
+      _mostrar('No se pudo enviar la solicitud. Intenta de nuevo.');
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  void _editar() {
+    if (_enviando) return;
     // Regresa a la pantalla de áreas/extras con todo lo que ya había elegido
     Navigator.popUntil(context, ModalRoute.withName('solicitud'));
   }
@@ -203,7 +242,7 @@ class QuoteScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 42,
                     child: ElevatedButton(
-                      onPressed: () => _confirmar(context),
+                      onPressed: _confirmar,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: FlowColors.teal,
                         foregroundColor: Colors.white,
@@ -212,13 +251,22 @@ class QuoteScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: const Text(
-                        'Confirmar solicitud',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                      child: _enviando
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Confirmar solicitud',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -226,7 +274,7 @@ class QuoteScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 42,
                     child: OutlinedButton(
-                      onPressed: () => _editar(context),
+                      onPressed: _editar,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: FlowColors.navy,
                         side: const BorderSide(
