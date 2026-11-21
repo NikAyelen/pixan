@@ -6,7 +6,9 @@ import '../data/mock_data.dart';
 import '../models/app_notification.dart';
 import '../models/service_request.dart';
 import '../models/worker_profile.dart';
+import 'api_client.dart';
 import 'formatters.dart';
+import 'requests_api.dart';
 import 'storage_service.dart';
 
 /// Resultado de validar si una acción está permitida. Cuando no lo está,
@@ -26,8 +28,9 @@ enum SimulatedResponse { acepta, contraoferta, rechaza }
 
 /// Estado global de la aplicación del trabajador.
 ///
-/// Toda la lógica es local: no hay servidor ni sincronización con la app de
-/// clientes. Los cambios se guardan en el dispositivo con [StorageService].
+/// Las solicitudes nuevas y la aceptación se sincronizan con el backend
+/// (polling cada 3 s). Todo lo demás (negociación, chat, iniciar/finalizar,
+/// calificar) sigue siendo local y se guarda con [StorageService].
 class AppState extends ChangeNotifier {
   AppState({StorageService? storage, DateTime Function()? clock})
       : _storage = storage,
@@ -44,6 +47,16 @@ class AppState extends ChangeNotifier {
   late WorkerProfile _profile;
   late List<ServiceRequest> _requests;
   late List<AppNotification> _notifications;
+
+  // ── Sincronización con el backend ──
+  static const _remotePrefix = 'api-';
+  static const _pollEvery = Duration(seconds: 3);
+
+  int? _workerId;
+  Timer? _timer;
+  bool _syncing = false;
+  bool _disposed = false;
+  final Set<String> _accepting = {};
 
   DateTime get now => _clock();
 
@@ -68,6 +81,7 @@ class AppState extends ChangeNotifier {
     try {
       _loggedIn = (data['loggedIn'] as bool?) ?? false;
       _online = (data['online'] as bool?) ?? true;
+      _workerId = (data['workerId'] as num?)?.toInt();
       _profile =
           WorkerProfile.fromJson(data['profile'] as Map<String, dynamic>);
       _requests = (data['requests'] as List)
@@ -79,14 +93,18 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       // Datos incompatibles: se vuelve a los datos simulados.
       _loggedIn = false;
+      _workerId = null;
       _seed();
     }
+    // Al reabrir la app con la sesión iniciada, se reanuda la sincronización.
+    if (_loggedIn && _workerId != null) _startSync();
   }
 
   Map<String, dynamic> toJson() => {
         'version': 1,
         'loggedIn': _loggedIn,
         'online': _online,
+        'workerId': _workerId,
         'profile': _profile.toJson(),
         'requests': _requests.map((r) => r.toJson()).toList(),
         'notifications': _notifications.map((n) => n.toJson()).toList(),
@@ -94,6 +112,7 @@ class AppState extends ChangeNotifier {
 
   /// Notifica a la interfaz y guarda los cambios.
   void _commit() {
+    if (_disposed) return;
     notifyListeners();
     final storage = _storage;
     if (storage != null) unawaited(storage.write(toJson()));
@@ -102,29 +121,108 @@ class AppState extends ChangeNotifier {
   String _newId(String prefix) =>
       '$prefix-${now.microsecondsSinceEpoch}-${_seq++}';
 
+  @override
+  void dispose() {
+    _disposed = true;
+    _timer?.cancel();
+    super.dispose();
+  }
+
   // ════════════════════════════════════════════════════════════════
-  // Sesión (simulada)
+  // Sesión
   // ════════════════════════════════════════════════════════════════
 
   bool get isLoggedIn => _loggedIn;
   WorkerProfile get profile => _profile;
 
-  /// Inicia sesión localmente. Devuelve un mensaje de error o `null`.
+  /// Id del trabajador en el backend (null si la sesión es local/demo).
+  int? get workerId => _workerId;
+
+  /// Inicia sesión localmente (cuenta de prueba). Devuelve un mensaje de error o `null`.
   String? login(String email, String password) {
     final e = email.trim().toLowerCase();
     if (e == _profile.email.toLowerCase() && password == _profile.password) {
+      _stopSync();
+      _workerId = null;
       _loggedIn = true;
       _commit();
       return null;
     }
     if (e == MockData.demoEmail && password == MockData.demoPassword) {
-      _profile = MockData.demoProfile(now)
-          .copyWith(schedule: _profile.schedule, preferences: _profile.preferences);
+      _stopSync();
+      _workerId = null;
+      _profile = MockData.demoProfile(now).copyWith(
+          schedule: _profile.schedule, preferences: _profile.preferences);
       _loggedIn = true;
       _commit();
       return null;
     }
     return 'Correo o contraseña incorrectos.';
+  }
+
+  /// Sesión con una cuenta real del backend (login).
+  ///
+  /// Guarda el id del trabajador, limpia los datos de demostración y
+  /// arranca la sincronización de solicitudes.
+  void loginRemote({
+    required int workerId,
+    required String name,
+    required String email,
+    required String phone,
+  }) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final first = parts.first;
+    final last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    final cleanEmail = email.trim().toLowerCase();
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+
+    final sameAccount = _profile.email.toLowerCase() == cleanEmail;
+    if (sameAccount) {
+      // Misma cuenta: se conservan especialidades, horario y preferencias.
+      _profile = _profile.copyWith(
+        firstName: first,
+        lastName: last,
+        phone: cleanPhone,
+      );
+    } else {
+      _profile = WorkerProfile(
+        firstName: first,
+        lastName: last,
+        email: cleanEmail,
+        phone: cleanPhone,
+        password: '',
+        specialties: <String>[],
+        ineStatus: IneStatus.enRevision,
+        memberSince: now,
+        schedule: MockData.defaultSchedule(),
+      );
+    }
+
+    if (_workerId != workerId) {
+      // Otra cuenta (o venimos de los datos demo): se empieza limpio.
+      _requests = <ServiceRequest>[];
+      _notifications = <AppNotification>[];
+    }
+    _workerId = workerId;
+    _loggedIn = true;
+    _online = true;
+    _commit();
+    _startSync();
+  }
+
+  /// Vincula la cuenta recién registrada en el backend y empieza a recibir
+  /// solicitudes. Se llama justo después de [register].
+  void bindRemoteWorker(int workerId) {
+    // Se borran las solicitudes de demostración para que no se mezclen
+    // con las reales. (Quita esta línea si quieres conservarlas.)
+    _requests = <ServiceRequest>[];
+    _notifications = _notifications
+        .where((n) => n.requestId == null || byId(n.requestId!) != null)
+        .toList();
+    _workerId = workerId;
+    _loggedIn = true;
+    _commit();
+    _startSync();
   }
 
   void register({
@@ -157,7 +255,7 @@ class AppState extends ChangeNotifier {
     _addNotification(
       NotificationType.sistema,
       '¡Te damos la bienvenida, $first!',
-      'Tu cuenta se creó en este dispositivo. Tu INE aparece «En revisión» (simulado).',
+      'Tu cuenta se creó correctamente. Tu INE aparece «En revisión» (simulado).',
     );
     _commit();
   }
@@ -168,15 +266,181 @@ class AppState extends ChangeNotifier {
       email.trim().toLowerCase() == MockData.demoEmail;
 
   void logout() {
+    _stopSync();
     _loggedIn = false;
     _commit();
   }
 
   /// Restablece los datos de demostración sin cerrar la sesión.
   void resetDemo() {
+    _stopSync();
+    _workerId = null;
     _seed();
     _loggedIn = true;
     _commit();
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // Sincronización con el backend (polling)
+  // ════════════════════════════════════════════════════════════════
+
+  bool _isRemote(ServiceRequest r) => r.id.startsWith(_remotePrefix);
+
+  int? _remoteId(ServiceRequest r) =>
+      int.tryParse(r.id.substring(_remotePrefix.length));
+
+  void _startSync() {
+    _stopSync();
+    if (_workerId == null) return;
+    unawaited(_restoreAccepted());
+    unawaited(_syncOnce());
+    _timer = Timer.periodic(_pollEvery, (_) => unawaited(_syncOnce()));
+  }
+
+  void _stopSync() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  /// Consulta las solicitudes disponibles y las mezcla con las locales.
+  Future<void> _syncOnce() async {
+    final wid = _workerId;
+    if (wid == null || _syncing || _disposed) return;
+    _syncing = true;
+    try {
+      final list = await RequestsApi.disponibles();
+      if (_disposed || _workerId != wid) return;
+      _applyDisponibles(list);
+    } catch (_) {
+      // Sin conexión un momento: se reintenta en el siguiente ciclo.
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  void _applyDisponibles(List<RemoteRequest> list) {
+    var changed = false;
+    final remoteIds = <String>{for (final r in list) '$_remotePrefix${r.id}'};
+
+    // 1) Solicitudes nuevas.
+    final nuevas = <ServiceRequest>[];
+    for (final remote in list) {
+      final id = '$_remotePrefix${remote.id}';
+      if (byId(id) != null) continue;
+      final req = _fromRemote(remote, RequestStatus.disponible);
+      nuevas.add(req);
+      _addNotification(
+        NotificationType.servicio,
+        'Nueva solicitud de limpieza',
+        '${req.client.shortName} pidió «${req.cleaningType}» para ${Fmt.dateTime(req.scheduledAt)}.',
+        requestId: id,
+      );
+    }
+    if (nuevas.isNotEmpty) {
+      _requests = [..._requests, ...nuevas];
+      changed = true;
+    }
+
+    // 2) Las que seguían "nuevas" y ya no vienen: las tomó otro colaborador.
+    for (final r in _requests) {
+      if (_isRemote(r) &&
+          r.status == RequestStatus.disponible &&
+          !remoteIds.contains(r.id) &&
+          !_accepting.contains(r.id)) {
+        r.status = RequestStatus.cancelada;
+        r.statusReason = 'Tomada por otro colaborador.';
+        changed = true;
+      }
+    }
+
+    if (changed) _commit();
+  }
+
+  /// Recupera las solicitudes que este trabajador ya aceptó en el backend
+  /// (por ejemplo, al iniciar sesión en otro dispositivo).
+  Future<void> _restoreAccepted() async {
+    final wid = _workerId;
+    if (wid == null) return;
+    try {
+      final list = await RequestsApi.deTrabajador(wid);
+      if (_disposed || _workerId != wid) return;
+      final nuevas = <ServiceRequest>[];
+      for (final remote in list) {
+        if (remote.trabajadorId != wid) continue;
+        if (byId('$_remotePrefix${remote.id}') != null) continue;
+        final req = _fromRemote(remote, RequestStatus.confirmada);
+        req.agreedPrice = remote.total;
+        nuevas.add(req);
+      }
+      if (nuevas.isNotEmpty) {
+        _requests = [..._requests, ...nuevas];
+        _commit();
+      }
+    } catch (_) {
+      // Se ignora: no es crítico.
+    }
+  }
+
+  /// Convierte una solicitud del backend al modelo que usan las pantallas.
+  ServiceRequest _fromRemote(RemoteRequest r, RequestStatus status) {
+    final nameParts = r.clienteNombre.trim().split(RegExp(r'\s+'));
+    final first = nameParts.first.isEmpty ? 'Cliente' : nameParts.first;
+    final last = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+    final client = ClientInfo(
+      id: 'c-${r.clienteId}',
+      firstName: first,
+      lastName: last,
+      phone: r.clienteTelefono ?? '',
+      email: '',
+      ineVerified: false,
+      rating: 5.0,
+      servicesRequested: 1,
+      memberSince: 'Reciente',
+    );
+
+    final PropertyType type;
+    switch (r.casa.tipo.toUpperCase()) {
+      case 'OFICINA':
+        type = PropertyType.oficina;
+      case 'DEPARTAMENTO':
+        type = PropertyType.departamento;
+      default:
+        type = PropertyType.casa;
+    }
+
+    final space = SpaceInfo(
+      type: type,
+      rooms: r.casa.habitaciones,
+      fullBaths: r.casa.banos,
+      halfBaths: r.casa.mediosBanos,
+      floors: r.casa.pisos,
+      approxM2: r.metros2,
+      areas: r.areas,
+      photos: const [], // las fotos todavía no viajan por el backend
+      notes: r.notas,
+      zone: r.zona.isEmpty ? 'Zona no especificada' : r.zona,
+      address: r.direccion.isEmpty ? 'Dirección no especificada' : r.direccion,
+      distanceKm: (r.seleccion['distanciaKm'] as num?)?.toDouble() ?? 0,
+    );
+
+    return ServiceRequest(
+      id: '$_remotePrefix${r.id}',
+      cleaningType: r.tipoLimpieza,
+      description: r.descripcion,
+      scheduledAt: r.fecha,
+      durationHours: r.duracionHoras,
+      estimateMin: r.total,
+      estimateMax: r.total,
+      createdAt: now,
+      client: client,
+      space: space,
+      status: status,
+      extraService: r.servicioExtra,
+      extraServicePrice: r.precioExtra,
+      extraDetails: r.detallesExtra,
+      conditions: r.condiciones,
+    );
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -227,8 +491,8 @@ class AppState extends ChangeNotifier {
     final sameHours = enabled.every((d) =>
         d.startMinutes == enabled.first.startMinutes &&
         d.endMinutes == enabled.first.endMinutes);
-    final consecutive = enabled.last.weekday - enabled.first.weekday ==
-        enabled.length - 1;
+    final consecutive =
+        enabled.last.weekday - enabled.first.weekday == enabled.length - 1;
     final days = enabled.length == 7
         ? 'Todos los días'
         : consecutive && enabled.length > 1
@@ -260,13 +524,15 @@ class AppState extends ChangeNotifier {
 
   /// Oportunidades nuevas que cumplen las preferencias del trabajador.
   List<ServiceRequest> get availableRequests => _requests
-      .where((r) => r.status == RequestStatus.disponible && _passesPreferences(r))
+      .where(
+          (r) => r.status == RequestStatus.disponible && _passesPreferences(r))
       .toList()
     ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
   /// Oportunidades ocultas por distancia u horario.
   int get hiddenByPreferences => _requests
-      .where((r) => r.status == RequestStatus.disponible && !_passesPreferences(r))
+      .where(
+          (r) => r.status == RequestStatus.disponible && !_passesPreferences(r))
       .length;
 
   List<ServiceRequest> get negotiatingRequests =>
@@ -280,8 +546,7 @@ class AppState extends ChangeNotifier {
 
   /// Servicios en la agenda: con acuerdo, confirmados y en curso.
   List<ServiceRequest> get agendaRequests => _requests
-      .where((r) =>
-          r.status == RequestStatus.aceptada || r.status.isScheduled)
+      .where((r) => r.status == RequestStatus.aceptada || r.status.isScheduled)
       .toList()
     ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
 
@@ -304,16 +569,14 @@ class AppState extends ChangeNotifier {
     return upcoming.isEmpty ? null : upcoming.first;
   }
 
-  List<ServiceRequest> get completedJobs => _requests
-      .where((r) => r.status == RequestStatus.finalizada)
-      .toList()
-    ..sort((a, b) => (b.finishedAt ?? b.scheduledAt)
-        .compareTo(a.finishedAt ?? a.scheduledAt));
+  List<ServiceRequest> get completedJobs =>
+      _requests.where((r) => r.status == RequestStatus.finalizada).toList()
+        ..sort((a, b) => (b.finishedAt ?? b.scheduledAt)
+            .compareTo(a.finishedAt ?? a.scheduledAt));
 
-  List<ServiceRequest> get closedRequests => _requests
-      .where((r) => r.status.isClosed)
-      .toList()
-    ..sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
+  List<ServiceRequest> get closedRequests =>
+      _requests.where((r) => r.status.isClosed).toList()
+        ..sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
 
   /// Solicitudes que esperan una acción del trabajador.
   List<ServiceRequest> get needsAction => _requests
@@ -325,14 +588,14 @@ class AppState extends ChangeNotifier {
   double get totalEarnings =>
       completedJobs.fold(0, (sum, r) => sum + (r.agreedPrice ?? 0));
 
-  double earningsBetween(DateTime start, DateTime end) => completedJobs
-      .where((r) {
+  double earningsBetween(DateTime start, DateTime end) =>
+      completedJobs.where((r) {
         final d = r.finishedAt ?? r.scheduledAt;
         return !d.isBefore(start) && d.isBefore(end);
-      })
-      .fold(0, (sum, r) => sum + (r.agreedPrice ?? 0));
+      }).fold(0, (sum, r) => sum + (r.agreedPrice ?? 0));
 
-  int completedBetween(DateTime start, DateTime end) => completedJobs.where((r) {
+  int completedBetween(DateTime start, DateTime end) =>
+      completedJobs.where((r) {
         final d = r.finishedAt ?? r.scheduledAt;
         return !d.isBefore(start) && d.isBefore(end);
       }).length;
@@ -450,7 +713,8 @@ class AppState extends ChangeNotifier {
 
   ActionCheck canFinish(ServiceRequest r) => r.status == RequestStatus.enCurso
       ? const ActionCheck.ok()
-      : const ActionCheck.no('El servicio debe estar en curso para finalizarlo.');
+      : const ActionCheck.no(
+          'El servicio debe estar en curso para finalizarlo.');
 
   ActionCheck canCancel(ServiceRequest r) {
     if (r.status == RequestStatus.aceptada ||
@@ -477,7 +741,8 @@ class AppState extends ChangeNotifier {
 
   ActionCheck canRate(ServiceRequest r) {
     if (r.status != RequestStatus.finalizada) {
-      return const ActionCheck.no('Solo puedes calificar servicios finalizados.');
+      return const ActionCheck.no(
+          'Solo puedes calificar servicios finalizados.');
     }
     if (r.clientRatingGiven != null) {
       return const ActionCheck.no('Ya calificaste a este cliente.');
@@ -533,15 +798,62 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  /// Aceptación inicial: el trabajador muestra interés y abre la negociación.
-  String? acceptOpportunity(String id) {
+  /// Aceptación de una oportunidad.
+  ///
+  /// - Solicitudes del backend (`api-…`): llama a `PATCH /hoyo-negro/:id/aceptar`.
+  ///   Si sale bien queda **Confirmada** (agenda) con el `total` del cliente.
+  ///   Si responde 409, la marca como tomada por otro colaborador.
+  /// - Solicitudes locales (demo): abre la negociación como antes.
+  ///
+  /// Devuelve un mensaje de error o `null` si todo salió bien.
+  Future<String?> acceptOpportunity(String id) async {
     final r = _require(id);
     final check = canAccept(r);
     if (!check.allowed) return check.reason;
-    r.status = RequestStatus.enNegociacion;
+
+    // ── Solicitud local (datos de demostración) ──
+    if (!_isRemote(r)) {
+      r.status = RequestStatus.enNegociacion;
+      r.statusReason = null;
+      _addMessage(r, MessageKind.system,
+          'Aceptaste la oportunidad. Ya puedes conversar con el cliente.');
+      _commit();
+      return null;
+    }
+
+    // ── Solicitud del backend ──
+    final wid = _workerId;
+    final remoteId = _remoteId(r);
+    if (wid == null || remoteId == null) {
+      return 'Inicia sesión con tu cuenta de trabajador para aceptar.';
+    }
+    if (_accepting.contains(id)) return 'Procesando tu aceptación…';
+
+    _accepting.add(id);
+    try {
+      await RequestsApi.aceptar(id: remoteId, trabajadorId: wid);
+    } on ApiException catch (e) {
+      if (e.statusCode == 409) {
+        r.status = RequestStatus.cancelada;
+        r.statusReason = 'Tomada por otro colaborador.';
+        _commit();
+        return 'Otro colaborador ya tomó esta solicitud.';
+      }
+      return e.message;
+    } catch (_) {
+      return 'No se pudo conectar con el servidor.';
+    } finally {
+      _accepting.remove(id);
+    }
+
+    r.status = RequestStatus.confirmada;
+    r.agreedPrice = r.estimateMin;
     r.statusReason = null;
     _addMessage(r, MessageKind.system,
-        'Aceptaste la oportunidad. Ya puedes conversar con el cliente.');
+        'Aceptaste el servicio por ${Fmt.money(r.agreedPrice!)}.');
+    _addNotification(NotificationType.servicio, 'Servicio confirmado',
+        '«${r.cleaningType}» quedó en tu agenda: ${Fmt.dateTime(r.scheduledAt)}.',
+        requestId: id);
     _commit();
     return null;
   }

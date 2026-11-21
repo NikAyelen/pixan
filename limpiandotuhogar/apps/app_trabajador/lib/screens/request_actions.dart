@@ -32,6 +32,8 @@ class RequestActions {
     if (error != null) showToast(context, error, error: true);
   }
 
+  /// Aceptar una solicitud: se avisa al servidor y, si nadie más la tomó,
+  /// queda confirmada en la agenda.
   static Future<void> accept(BuildContext context, ServiceRequest r) async {
     final state = AppScope.read(context);
     final check = state.canAccept(r);
@@ -44,16 +46,17 @@ class RequestActions {
     ];
     final ok = await confirmAction(
       context,
-      title: 'Aceptar oportunidad',
+      title: 'Aceptar solicitud',
       message:
-          '${warnings.isEmpty ? '' : '${warnings.join(' ')}\n\n'}Al aceptar podrás conversar con el cliente y enviarle tu propuesta económica. Esto todavía no confirma el servicio.',
-      confirmLabel: 'Aceptar oportunidad',
+          '${warnings.isEmpty ? '' : '${warnings.join(' ')}\n\n'}Al aceptar, el servicio queda confirmado en tu agenda por ${Fmt.money(r.estimateMin)} MXN.',
+      confirmLabel: 'Aceptar solicitud',
       icon: Icons.handshake_outlined,
     );
     if (!ok || !context.mounted) return;
-    final error = state.acceptOpportunity(r.id);
+    final error = await state.acceptOpportunity(r.id);
+    if (!context.mounted) return;
     if (error != null) return _fail(context, error);
-    _done(context, 'Oportunidad aceptada. Ahora envía tu propuesta.');
+    _done(context, 'Solicitud aceptada. Quedó confirmada en tu agenda.');
   }
 
   static Future<void> reject(BuildContext context, ServiceRequest r,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../services/session.dart';
+
 import '../data/mock_data.dart';
 import '../navigation/app_routes.dart';
 import '../services/api_client.dart';
+import '../services/app_scope.dart';
 import '../services/haptics.dart';
+import '../services/session.dart';
 import '../services/validators.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -53,11 +55,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final user = await AuthApi.login(
-        correo: _email.text,
+        correo: _email.text.trim(),
         password: _password.text,
       );
       if (!mounted) return;
+
+      // No lanzamos ApiException a mano: su constructor puede exigir
+      // statusCode y eso rompía la compilación.
+      if (user.rol != 'TRABAJADOR') {
+        setState(() {
+          _loading = false;
+          _error = 'Esta app es solo para trabajadores.';
+        });
+        return;
+      }
+
       Session.instance.start(user);
+      AppScope.read(context).loginRemote(
+        workerId: user.id,
+        name: user.nombre,
+        email: user.correo,
+        phone: '${user.telefono ?? ''}',
+      );
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -65,8 +84,17 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = e.message;
       });
       return;
+    } catch (_) {
+      // Cualquier otro error (sin red, JSON inválido, etc.).
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'No se pudo conectar con el servidor.';
+      });
+      return;
     }
 
+    if (!mounted) return;
     Haptics.success(context);
     AppRoutes.resetTo(context, const MainShell());
   }
@@ -133,8 +161,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: AppLinkButton(
                     label: '¿Olvidaste tu contraseña?',
                     fontSize: 13,
-                    onPressed: () => AppRoutes.push(
-                        context, ForgotPasswordScreen(initialEmail: _email.text)),
+                    onPressed: () => AppRoutes.push(context,
+                        ForgotPasswordScreen(initialEmail: _email.text)),
                   ),
                 ),
                 AnimatedSize(

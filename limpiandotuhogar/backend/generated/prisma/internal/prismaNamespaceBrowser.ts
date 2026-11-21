@@ -103,7 +103,9 @@ export const Hoyo_negroScalarFieldEnum = {
   fecha: 'fecha',
   seleccion: 'seleccion',
   total: 'total',
-  id_galaxias: 'id_galaxias'
+  id_galaxias: 'id_galaxias',
+  estado: 'estado',
+  trabajador_id: 'trabajador_id'
 } as const
 
 export type Hoyo_negroScalarFieldEnum = (typeof Hoyo_negroScalarFieldEnum)[keyof typeof Hoyo_negroScalarFieldEnum]
@@ -158,4 +160,11 @@ export const QueryMode = {
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const hoyo_negroOrderByRelevanceFieldEnum = {
+  estado: 'estado'
+} as const
+
+export type hoyo_negroOrderByRelevanceFieldEnum = (typeof hoyo_negroOrderByRelevanceFieldEnum)[keyof typeof hoyo_negroOrderByRelevanceFieldEnum]
 

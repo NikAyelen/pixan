@@ -30,14 +30,16 @@ model galaxias {
 }
 
 model hoyo_negro {
-  id          Int       @id @default(autoincrement())
-  cliente_id  Int
-  fecha       DateTime? @db.DateTime(0)
-  seleccion   Json
-  total       Decimal   @db.Decimal(10, 2)
-  id_galaxias Int
-  galaxias    galaxias  @relation(fields: [id_galaxias], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_hoyo_negro_galaxias")
-  estrellas   estrellas @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reservas_cliente")
+  id            Int       @id @default(autoincrement())
+  cliente_id    Int
+  fecha         DateTime? @db.DateTime(0)
+  seleccion     Json
+  total         Decimal   @db.Decimal(10, 2)
+  id_galaxias   Int
+  estado        String    @default("DISPONIBLE") @db.VarChar(20)
+  trabajador_id Int?
+  galaxias      galaxias  @relation(fields: [id_galaxias], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_hoyo_negro_galaxias")
+  estrellas     estrellas @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reservas_cliente")
 
   @@index([cliente_id], map: "fk_reservas_cliente")
   @@index([id_galaxias], map: "fk_hoyo_negro_galaxias")

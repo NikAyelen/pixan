@@ -31,6 +31,7 @@ export type Hoyo_negroAvgAggregateOutputType = {
   cliente_id: number | null
   total: runtime.Decimal | null
   id_galaxias: number | null
+  trabajador_id: number | null
 }
 
 export type Hoyo_negroSumAggregateOutputType = {
@@ -38,6 +39,7 @@ export type Hoyo_negroSumAggregateOutputType = {
   cliente_id: number | null
   total: runtime.Decimal | null
   id_galaxias: number | null
+  trabajador_id: number | null
 }
 
 export type Hoyo_negroMinAggregateOutputType = {
@@ -46,6 +48,8 @@ export type Hoyo_negroMinAggregateOutputType = {
   fecha: Date | null
   total: runtime.Decimal | null
   id_galaxias: number | null
+  estado: string | null
+  trabajador_id: number | null
 }
 
 export type Hoyo_negroMaxAggregateOutputType = {
@@ -54,6 +58,8 @@ export type Hoyo_negroMaxAggregateOutputType = {
   fecha: Date | null
   total: runtime.Decimal | null
   id_galaxias: number | null
+  estado: string | null
+  trabajador_id: number | null
 }
 
 export type Hoyo_negroCountAggregateOutputType = {
@@ -63,6 +69,8 @@ export type Hoyo_negroCountAggregateOutputType = {
   seleccion: number
   total: number
   id_galaxias: number
+  estado: number
+  trabajador_id: number
   _all: number
 }
 
@@ -72,6 +80,7 @@ export type Hoyo_negroAvgAggregateInputType = {
   cliente_id?: true
   total?: true
   id_galaxias?: true
+  trabajador_id?: true
 }
 
 export type Hoyo_negroSumAggregateInputType = {
@@ -79,6 +88,7 @@ export type Hoyo_negroSumAggregateInputType = {
   cliente_id?: true
   total?: true
   id_galaxias?: true
+  trabajador_id?: true
 }
 
 export type Hoyo_negroMinAggregateInputType = {
@@ -87,6 +97,8 @@ export type Hoyo_negroMinAggregateInputType = {
   fecha?: true
   total?: true
   id_galaxias?: true
+  estado?: true
+  trabajador_id?: true
 }
 
 export type Hoyo_negroMaxAggregateInputType = {
@@ -95,6 +107,8 @@ export type Hoyo_negroMaxAggregateInputType = {
   fecha?: true
   total?: true
   id_galaxias?: true
+  estado?: true
+  trabajador_id?: true
 }
 
 export type Hoyo_negroCountAggregateInputType = {
@@ -104,6 +118,8 @@ export type Hoyo_negroCountAggregateInputType = {
   seleccion?: true
   total?: true
   id_galaxias?: true
+  estado?: true
+  trabajador_id?: true
   _all?: true
 }
 
@@ -200,6 +216,8 @@ export type Hoyo_negroGroupByOutputType = {
   seleccion: runtime.JsonValue
   total: runtime.Decimal
   id_galaxias: number
+  estado: string
+  trabajador_id: number | null
   _count: Hoyo_negroCountAggregateOutputType | null
   _avg: Hoyo_negroAvgAggregateOutputType | null
   _sum: Hoyo_negroSumAggregateOutputType | null
@@ -232,6 +250,8 @@ export type hoyo_negroWhereInput = {
   seleccion?: Prisma.JsonFilter<"hoyo_negro">
   total?: Prisma.DecimalFilter<"hoyo_negro"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntFilter<"hoyo_negro"> | number
+  estado?: Prisma.StringFilter<"hoyo_negro"> | string
+  trabajador_id?: Prisma.IntNullableFilter<"hoyo_negro"> | number | null
   galaxias?: Prisma.XOR<Prisma.GalaxiasScalarRelationFilter, Prisma.galaxiasWhereInput>
   estrellas?: Prisma.XOR<Prisma.EstrellasScalarRelationFilter, Prisma.estrellasWhereInput>
 }
@@ -243,8 +263,11 @@ export type hoyo_negroOrderByWithRelationInput = {
   seleccion?: Prisma.SortOrder
   total?: Prisma.SortOrder
   id_galaxias?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
+  trabajador_id?: Prisma.SortOrderInput | Prisma.SortOrder
   galaxias?: Prisma.galaxiasOrderByWithRelationInput
   estrellas?: Prisma.estrellasOrderByWithRelationInput
+  _relevance?: Prisma.hoyo_negroOrderByRelevanceInput
 }
 
 export type hoyo_negroWhereUniqueInput = Prisma.AtLeast<{
@@ -257,6 +280,8 @@ export type hoyo_negroWhereUniqueInput = Prisma.AtLeast<{
   seleccion?: Prisma.JsonFilter<"hoyo_negro">
   total?: Prisma.DecimalFilter<"hoyo_negro"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntFilter<"hoyo_negro"> | number
+  estado?: Prisma.StringFilter<"hoyo_negro"> | string
+  trabajador_id?: Prisma.IntNullableFilter<"hoyo_negro"> | number | null
   galaxias?: Prisma.XOR<Prisma.GalaxiasScalarRelationFilter, Prisma.galaxiasWhereInput>
   estrellas?: Prisma.XOR<Prisma.EstrellasScalarRelationFilter, Prisma.estrellasWhereInput>
 }, "id">
@@ -268,6 +293,8 @@ export type hoyo_negroOrderByWithAggregationInput = {
   seleccion?: Prisma.SortOrder
   total?: Prisma.SortOrder
   id_galaxias?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
+  trabajador_id?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.hoyo_negroCountOrderByAggregateInput
   _avg?: Prisma.hoyo_negroAvgOrderByAggregateInput
   _max?: Prisma.hoyo_negroMaxOrderByAggregateInput
@@ -285,12 +312,16 @@ export type hoyo_negroScalarWhereWithAggregatesInput = {
   seleccion?: Prisma.JsonWithAggregatesFilter<"hoyo_negro">
   total?: Prisma.DecimalWithAggregatesFilter<"hoyo_negro"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntWithAggregatesFilter<"hoyo_negro"> | number
+  estado?: Prisma.StringWithAggregatesFilter<"hoyo_negro"> | string
+  trabajador_id?: Prisma.IntNullableWithAggregatesFilter<"hoyo_negro"> | number | null
 }
 
 export type hoyo_negroCreateInput = {
   fecha?: Date | string | null
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: string
+  trabajador_id?: number | null
   galaxias: Prisma.galaxiasCreateNestedOneWithoutHoyo_negroInput
   estrellas: Prisma.estrellasCreateNestedOneWithoutHoyo_negroInput
 }
@@ -302,12 +333,16 @@ export type hoyo_negroUncheckedCreateInput = {
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias: number
+  estado?: string
+  trabajador_id?: number | null
 }
 
 export type hoyo_negroUpdateInput = {
   fecha?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   galaxias?: Prisma.galaxiasUpdateOneRequiredWithoutHoyo_negroNestedInput
   estrellas?: Prisma.estrellasUpdateOneRequiredWithoutHoyo_negroNestedInput
 }
@@ -319,6 +354,8 @@ export type hoyo_negroUncheckedUpdateInput = {
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntFieldUpdateOperationsInput | number
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type hoyo_negroCreateManyInput = {
@@ -328,12 +365,16 @@ export type hoyo_negroCreateManyInput = {
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias: number
+  estado?: string
+  trabajador_id?: number | null
 }
 
 export type hoyo_negroUpdateManyMutationInput = {
   fecha?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type hoyo_negroUncheckedUpdateManyInput = {
@@ -343,6 +384,8 @@ export type hoyo_negroUncheckedUpdateManyInput = {
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntFieldUpdateOperationsInput | number
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type Hoyo_negroListRelationFilter = {
@@ -355,6 +398,12 @@ export type hoyo_negroOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type hoyo_negroOrderByRelevanceInput = {
+  fields: Prisma.hoyo_negroOrderByRelevanceFieldEnum | Prisma.hoyo_negroOrderByRelevanceFieldEnum[]
+  sort: Prisma.SortOrder
+  search: string
+}
+
 export type hoyo_negroCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   cliente_id?: Prisma.SortOrder
@@ -362,6 +411,8 @@ export type hoyo_negroCountOrderByAggregateInput = {
   seleccion?: Prisma.SortOrder
   total?: Prisma.SortOrder
   id_galaxias?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
+  trabajador_id?: Prisma.SortOrder
 }
 
 export type hoyo_negroAvgOrderByAggregateInput = {
@@ -369,6 +420,7 @@ export type hoyo_negroAvgOrderByAggregateInput = {
   cliente_id?: Prisma.SortOrder
   total?: Prisma.SortOrder
   id_galaxias?: Prisma.SortOrder
+  trabajador_id?: Prisma.SortOrder
 }
 
 export type hoyo_negroMaxOrderByAggregateInput = {
@@ -377,6 +429,8 @@ export type hoyo_negroMaxOrderByAggregateInput = {
   fecha?: Prisma.SortOrder
   total?: Prisma.SortOrder
   id_galaxias?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
+  trabajador_id?: Prisma.SortOrder
 }
 
 export type hoyo_negroMinOrderByAggregateInput = {
@@ -385,6 +439,8 @@ export type hoyo_negroMinOrderByAggregateInput = {
   fecha?: Prisma.SortOrder
   total?: Prisma.SortOrder
   id_galaxias?: Prisma.SortOrder
+  estado?: Prisma.SortOrder
+  trabajador_id?: Prisma.SortOrder
 }
 
 export type hoyo_negroSumOrderByAggregateInput = {
@@ -392,6 +448,7 @@ export type hoyo_negroSumOrderByAggregateInput = {
   cliente_id?: Prisma.SortOrder
   total?: Prisma.SortOrder
   id_galaxias?: Prisma.SortOrder
+  trabajador_id?: Prisma.SortOrder
 }
 
 export type hoyo_negroCreateNestedManyWithoutEstrellasInput = {
@@ -490,10 +547,20 @@ export type DecimalFieldUpdateOperationsInput = {
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type hoyo_negroCreateWithoutEstrellasInput = {
   fecha?: Date | string | null
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: string
+  trabajador_id?: number | null
   galaxias: Prisma.galaxiasCreateNestedOneWithoutHoyo_negroInput
 }
 
@@ -503,6 +570,8 @@ export type hoyo_negroUncheckedCreateWithoutEstrellasInput = {
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias: number
+  estado?: string
+  trabajador_id?: number | null
 }
 
 export type hoyo_negroCreateOrConnectWithoutEstrellasInput = {
@@ -541,12 +610,16 @@ export type hoyo_negroScalarWhereInput = {
   seleccion?: Prisma.JsonFilter<"hoyo_negro">
   total?: Prisma.DecimalFilter<"hoyo_negro"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntFilter<"hoyo_negro"> | number
+  estado?: Prisma.StringFilter<"hoyo_negro"> | string
+  trabajador_id?: Prisma.IntNullableFilter<"hoyo_negro"> | number | null
 }
 
 export type hoyo_negroCreateWithoutGalaxiasInput = {
   fecha?: Date | string | null
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: string
+  trabajador_id?: number | null
   estrellas: Prisma.estrellasCreateNestedOneWithoutHoyo_negroInput
 }
 
@@ -556,6 +629,8 @@ export type hoyo_negroUncheckedCreateWithoutGalaxiasInput = {
   fecha?: Date | string | null
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: string
+  trabajador_id?: number | null
 }
 
 export type hoyo_negroCreateOrConnectWithoutGalaxiasInput = {
@@ -590,12 +665,16 @@ export type hoyo_negroCreateManyEstrellasInput = {
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias: number
+  estado?: string
+  trabajador_id?: number | null
 }
 
 export type hoyo_negroUpdateWithoutEstrellasInput = {
   fecha?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   galaxias?: Prisma.galaxiasUpdateOneRequiredWithoutHoyo_negroNestedInput
 }
 
@@ -605,6 +684,8 @@ export type hoyo_negroUncheckedUpdateWithoutEstrellasInput = {
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntFieldUpdateOperationsInput | number
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type hoyo_negroUncheckedUpdateManyWithoutEstrellasInput = {
@@ -613,6 +694,8 @@ export type hoyo_negroUncheckedUpdateManyWithoutEstrellasInput = {
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   id_galaxias?: Prisma.IntFieldUpdateOperationsInput | number
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type hoyo_negroCreateManyGalaxiasInput = {
@@ -621,12 +704,16 @@ export type hoyo_negroCreateManyGalaxiasInput = {
   fecha?: Date | string | null
   seleccion: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total: runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: string
+  trabajador_id?: number | null
 }
 
 export type hoyo_negroUpdateWithoutGalaxiasInput = {
   fecha?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   estrellas?: Prisma.estrellasUpdateOneRequiredWithoutHoyo_negroNestedInput
 }
 
@@ -636,6 +723,8 @@ export type hoyo_negroUncheckedUpdateWithoutGalaxiasInput = {
   fecha?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type hoyo_negroUncheckedUpdateManyWithoutGalaxiasInput = {
@@ -644,6 +733,8 @@ export type hoyo_negroUncheckedUpdateManyWithoutGalaxiasInput = {
   fecha?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   seleccion?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   total?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  estado?: Prisma.StringFieldUpdateOperationsInput | string
+  trabajador_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -655,6 +746,8 @@ export type hoyo_negroSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   seleccion?: boolean
   total?: boolean
   id_galaxias?: boolean
+  estado?: boolean
+  trabajador_id?: boolean
   galaxias?: boolean | Prisma.galaxiasDefaultArgs<ExtArgs>
   estrellas?: boolean | Prisma.estrellasDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["hoyo_negro"]>
@@ -668,9 +761,11 @@ export type hoyo_negroSelectScalar = {
   seleccion?: boolean
   total?: boolean
   id_galaxias?: boolean
+  estado?: boolean
+  trabajador_id?: boolean
 }
 
-export type hoyo_negroOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cliente_id" | "fecha" | "seleccion" | "total" | "id_galaxias", ExtArgs["result"]["hoyo_negro"]>
+export type hoyo_negroOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "cliente_id" | "fecha" | "seleccion" | "total" | "id_galaxias" | "estado" | "trabajador_id", ExtArgs["result"]["hoyo_negro"]>
 export type hoyo_negroInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   galaxias?: boolean | Prisma.galaxiasDefaultArgs<ExtArgs>
   estrellas?: boolean | Prisma.estrellasDefaultArgs<ExtArgs>
@@ -689,6 +784,8 @@ export type $hoyo_negroPayload<ExtArgs extends runtime.Types.Extensions.Internal
     seleccion: runtime.JsonValue
     total: runtime.Decimal
     id_galaxias: number
+    estado: string
+    trabajador_id: number | null
   }, ExtArgs["result"]["hoyo_negro"]>
   composites: {}
 }
@@ -1066,6 +1163,8 @@ export interface hoyo_negroFieldRefs {
   readonly seleccion: Prisma.FieldRef<"hoyo_negro", 'Json'>
   readonly total: Prisma.FieldRef<"hoyo_negro", 'Decimal'>
   readonly id_galaxias: Prisma.FieldRef<"hoyo_negro", 'Int'>
+  readonly estado: Prisma.FieldRef<"hoyo_negro", 'String'>
+  readonly trabajador_id: Prisma.FieldRef<"hoyo_negro", 'Int'>
 }
     
 

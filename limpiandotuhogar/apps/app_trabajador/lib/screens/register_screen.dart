@@ -98,12 +98,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _loading = true);
 
     // 1) Crear la cuenta en el backend.
+    final ApiUser user;
     try {
-      final user = await AuthApi.signup(
+      user = await AuthApi.signup(
         nombre: _name.text,
         correo: _email.text,
         telefono: _phone.text,
         password: _password.text,
+        rol: 'TRABAJADOR',
       );
       if (!mounted) return;
       Session.instance.start(user);
@@ -129,6 +131,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ineBackPath: _ineBack!,
       specialties: _specialties.toList(),
     );
+    // 3) Vincular la cuenta del backend y empezar a recibir solicitudes.
+    AppScope.read(context).bindRemoteWorker(user.id);
+
     Haptics.success(context);
     setState(() => _loading = false);
     await showAppDialog<void>(
@@ -151,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Text('¡Cuenta creada!', style: AppText.title),
             const SizedBox(height: 6),
             Text(
-              'Tu INE quedó «En revisión». Mientras tanto ya puedes explorar solicitudes con datos de demostración.',
+              'Tu INE quedó «En revisión». Mientras tanto ya puedes recibir solicitudes de clientes.',
               style: AppText.body,
               textAlign: TextAlign.center,
             ),
